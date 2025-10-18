@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 
 function LoginPage({ setUser }) {
-  const [identification_number, setIdentification_number] = useState('');
-  const [password, setPassword] = useState('');
+  const [std_id, setIdentification_number] = useState('');
+  const [std_password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const navigate = useNavigate();
 
@@ -17,15 +17,15 @@ function LoginPage({ setUser }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          identification_number,
-          password
+          std_id,
+          std_password
         })
       });
-      const data = await response.json();
+      const data = await response.json();      navigate('/');
       if (response.ok) {
         setUser(data.user); 
-        localStorage.setItem('user', JSON.stringify(data.user));
-        navigate('/');
+        localStorage.setItem('std_id', JSON.stringify(data));
+        navigate('/main');
       } else {
         setErrorMessage(data.message || 'เข้าสู่ระบบไม่สำเร็จ');
         console.error('Login failed:', data.message);
@@ -50,28 +50,28 @@ function LoginPage({ setUser }) {
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm -space-y-px">
             <div className="mb-4">
-              <label htmlFor="identification_number" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="std_id" className="block text-sm font-medium text-gray-700">
                 รหัสประจำตัว
               </label>
               <input
-                id="identification_number"
+                id="std_id"
                 type="text"
                 required
-                value={identification_number}
+                value={std_id}
                 onChange={(e) => setIdentification_number(e.target.value)}
                 className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                 placeholder="กรุณากรอกรหัสประจำตัว"
               />
             </div>
             <div className="mb-4">
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="std_password" className="block text-sm font-medium text-gray-700">
                 รหัสผ่าน
               </label>
               <input
-                id="password"
+                id="std_password"
                 type="password"
                 required
-                value={password}
+                value={std_password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                 placeholder="กรุณากรอกรหัสผ่าน"

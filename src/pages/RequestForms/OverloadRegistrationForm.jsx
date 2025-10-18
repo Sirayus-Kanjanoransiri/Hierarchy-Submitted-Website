@@ -1,4 +1,6 @@
 import React from 'react'
+import './OverloadRegistrationForm.css';
+
 const OverloadRegistrationForm = () => {
   return (
     <>
@@ -85,34 +87,40 @@ const OverloadRegistrationForm = () => {
         <div className='flex-container'>
 
           <div className='form-info'>
-            <div className='closing'>
+            <div className='body-closing'>
               <label>
-                มีความประสงค์ ขอลงทะเบียนเรียนต่ำกว่าหน่วยกิตที่กำหนด จำนวน <input type="text" />หน่วยกิต 
+                มีความประสงค์ ขอลงทะเบียนเรียนเกินกว่าหน่วยกิตที่กำหนด จำนวน <input className='short-input' type="text" />หน่วยกิต 
               </label>
             </div>
           </div>
           
           <div className='form-info'>
             <label>
-              ในภาคการศึกษาที่ <input type="text" />
+              ในภาคการศึกษาที่
+            </label>
+
+            <select name="term" id="term">
+              <option value="term-1">1</option>
+              <option value="term-2">2</option>
+            </select>
+            
+          </div>
+          
+          <div className='form-info'>
+            <label>
+              ปีการศึกษา <input className='short-input' type="text" />
             </label>
           </div>
           
           <div className='form-info'>
             <label>
-              ปีการศึกษา <input type="text" />
+              รวมหน่วยกิตที่ลงทะเบียนในภาคการศึกษานี้ทั้งสิ้น <input className='short-input' type="text" />หน่วยกิต
             </label>
           </div>
           
           <div className='form-info'>
             <label>
-              รวมหน่วยกิตที่ลงทะเบียนในภาคการศึกษานี้ทั้งสิ้น <input type="text" />หน่วยกิต
-            </label>
-          </div>
-          
-          <div className='form-info'>
-            <label>
-              เกรดเฉลี่ยสะสม (GPA) <input type="text" />หน่วยกิต
+              เกรดเฉลี่ยสะสม (GPA) <input className='short-input' type="text" />หน่วยกิต
             </label>
           </div>
           
@@ -142,7 +150,12 @@ const OverloadRegistrationForm = () => {
             <div className='condition-section'>
               <div>
                 <label><input type="checkbox" />เคยลงทะเบียนเรียนเกินกว่าหน่วยกิตที่กำหนด ในภาคการศึกษาที่</label>
-                <input type="text" />
+
+                <select name="term" id="term">
+                  <option value="term-1">1</option>
+                  <option value="term-2">2</option>
+                </select>
+                
                 <label>ปีการศึกษา</label>
                 <input type="text" />
               </div>

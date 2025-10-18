@@ -1,22 +1,23 @@
 import React, { useState } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './pages/Navbar';
-import IndexPage from './pages/IndexPage'; 
+import Index from './pages/STDLoginPage';
 import RegisterPage from './pages/RegisterPage';
-import LoginPage from './pages/LoginPage'; 
 import ContactPage from './pages/ContactPage';
 import AllFormPages from './pages/AllFormPages';
-import GeneralRequestForm from './pages/RequestForms/GeneralRequestForm';
-import OverCreditForm from './pages/RequestForms/OverCreditForm';
-import UnderCreditForm from './pages/RequestForms/UnderCreditForm';
-
+import AcademicRequest6 from './pages/RequestForms/AcademicRequest6';
+import Mainpage from './pages/Mainpage';
+import EditPersonalInfo from './pages/EditPersonalInfo';
+import Home from './pages/home';
+import EnrollRequest1 from './pages/RequestForms/EnrollRequest1';
+import EnrollRequest2 from './pages/RequestForms/EnrollRequest2';
 function App() {
   const [user, setUser] = useState(() => {
     return localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
   });
 
-  
-  
+  const location = useLocation();
+
   const handleLogout = () => {
     setUser(null);
     localStorage.clear();
@@ -24,16 +25,18 @@ function App() {
 
   return (
     <>
-      <Navbar user={user} onLogout={handleLogout} />
+      {location.pathname !== '/' && <Navbar user={user} onLogout={handleLogout} />}
       <Routes>
-        <Route path="/" element={<IndexPage />} />
-        <Route path="/login" element={<LoginPage setUser={setUser} />} />
+        <Route path="/" element={<Index setUser={setUser} />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/main" element={<Mainpage />} />
         <Route path="/contact" element={<ContactPage />} />
-        <Route path="/requestforms" element={<AllFormPages />} />
-        <Route path="/requestforms/general" element={<GeneralRequestForm />} />
-        <Route path="/requestforms/over-credit" element={<OverCreditForm />} />
-        <Route path="/requestforms/under-credit" element={<UnderCreditForm />} />
+        <Route path="/forms" element={<AllFormPages />} />        
+        <Route path="/edit-personal-info" element={<EditPersonalInfo />} />
+        <Route path="/home" element={<Home />} />
+        <Route path="/forms/academic-request-6" element={<AcademicRequest6 />} />
+        <Route path="/forms/enroll-request-1" element={<EnrollRequest1 />} />
+        <Route path="/forms/enroll-request-2" element={<EnrollRequest2 />} />
       </Routes>
     </>
   );

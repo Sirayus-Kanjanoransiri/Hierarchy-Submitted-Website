@@ -1,7 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 function Navbar({ user, onLogout }) {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    onLogout();
+    navigate('/');
+  };
+
   const [currentUser, setCurrentUser] = useState(user);
 
   useEffect(() => {
@@ -14,7 +21,7 @@ function Navbar({ user, onLogout }) {
   }, [user]);
 
   return (
-    <nav className="bg-white shadow-lg">
+    <nav className="bg-white shadow-lg drop-shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
@@ -23,28 +30,37 @@ function Navbar({ user, onLogout }) {
           </div>
 
           <ul className="flex space-x-4">
-            <li><Link to="/" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">หน้าหลัก</Link></li>
-            <li><Link to="/requestforms" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">ส่งแบบคำร้อง</Link></li>
-            <li><Link to="/contact" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">ติดต่อ</Link></li>
+            <li><Link to="/main" className="text-gray-700 hover:text-gray-900 hover:underline px-3 py-2 rounded-md text-sm font-medium">หน้าหลัก</Link></li>
+            <li><Link to="/forms" className="text-gray-700 hover:text-gray-900 hover:underline px-3 py-2 rounded-md text-sm font-medium">ส่งแบบคำร้อง</Link></li>
+            <li><Link to="/contact" className="text-gray-700 hover:text-gray-900 hover:underline px-3 py-2 rounded-md text-sm font-medium">ติดต่อ</Link></li>
           </ul>
 
           <div>
             {user ? (
               <div className="flex items-center space-x-4">
                 <span className="text-gray-700 font-medium text-lg">ยินดีต้อนรับ {user.std_name}</span>
-                <button 
-                  onClick={onLogout} 
-                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium"
+                {/* logout button */}
+                <button
+                  onClick={handleLogout}
+                  className=""
+                  aria-label="logout"
                 >
-                  ออกจากระบบ
+                  <img src="/images/logout1.png" alt="Logout1" className="h-10 w-auto transform transition-transform duration-200 hover:scale-110" />
+                </button>
+                <button
+                  onClick={() => navigate('/edit-personal-info')}
+                  className=""
+                  aria-label="Settings"
+                >
+                  <img src="/images/Setting.png" alt="Settings" className="h-6 w-auto transform transition-transform duration-200 hover:scale-110" />
                 </button>
               </div>
             ) : (
               <Link 
-                to="/login"
+                to="/"
                 className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium"
               >
-                ลงชื่อเข้าใช้
+                Login
               </Link>
             )}
           </div>

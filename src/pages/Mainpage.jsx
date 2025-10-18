@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-function IndexPage() {
+function Mainpage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <main className="flex-grow">
@@ -22,7 +22,7 @@ function IndexPage() {
             <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
               <h3 className="text-xl font-semibold text-gray-900 mb-3">คำร้องทั่วไป</h3>
               <p className="text-gray-600 mb-4">สำหรับคำร้องขอต่างๆ ที่ไม่อยู่ในหมวดหมู่เฉพาะ</p>
-              <Link to="/requestforms/general" className="inline-block bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+              <Link to="/forms/academic-request-6" className="inline-block bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
                 ส่งคำร้อง
               </Link>
             </div>
@@ -30,7 +30,7 @@ function IndexPage() {
             <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
               <h3 className="text-xl font-semibold text-gray-900 mb-3">คำร้องลงทะเบียนเกิน</h3>
               <p className="text-gray-600 mb-4">สำหรับการขอลงทะเบียนเรียนเกินจำนวนหน่วยกิตที่กำหนด</p>
-              <Link to="/requestforms/over-credit" className="inline-block bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+              <Link to="/forms/enroll-request-1" className="inline-block bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
                 ส่งคำร้อง
               </Link>
             </div>
@@ -38,7 +38,7 @@ function IndexPage() {
             <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
               <h3 className="text-xl font-semibold text-gray-900 mb-3">คำร้องลงทะเบียนต่ำ</h3>
               <p className="text-gray-600 mb-4">สำหรับการขอลงทะเบียนเรียนต่ำกว่าจำนวนหน่วยกิตมาตรฐาน</p>
-              <Link to="/requestforms/under-credit" className="inline-block bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+              <Link to="/forms/enroll-request-2" className="inline-block bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
                 ส่งคำร้อง
               </Link>
             </div>
@@ -57,4 +57,4 @@ function IndexPage() {
   );
 }
 
-export default IndexPage;
+export default Mainpage;
