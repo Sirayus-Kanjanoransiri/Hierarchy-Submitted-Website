@@ -22,7 +22,6 @@ function LoginPage({ setUser }) {
     }
 
     // 2. เตรียมข้อมูลที่จะส่งไป Backend
-    //    *ส่งค่าเดียวกันภายใต้ Key ทั้งสองชุด* เพื่อให้ Backend ทำการตรวจสอบทั้ง Student และ Staff
     const dataToSend = {
       std_id: identification_id, // ให้ Backend ตรวจสอบ Student
       std_password: password,
@@ -40,15 +39,20 @@ function LoginPage({ setUser }) {
       const data = await response.json();
 
       if (response.ok) {
-        // Backend ควรจะส่ง 'role' และ 'user' กลับมา
-        // data.role จะเป็น 'student' หรือ 'staff'
+        // *** CRITICAL: รวม Role เข้าไปใน Object User ก่อนเก็บ ***
+        const userDataWithRole = { ...data.user, role: data.role };
 
         // เก็บข้อมูลผู้ใช้และ Role
-        setUser(data.user);
-        localStorage.setItem("user_data", JSON.stringify(data));
+        setUser(userDataWithRole);
+        localStorage.setItem("user", JSON.stringify(userDataWithRole)); 
+        
+        // ตรวจสอบ Role เพื่อนำทางไปยังหน้า Dashboard ที่ถูกต้อง
+        if (data.role === 'staff') {
+          navigate("/staff-dashboard");
+        } else {
+          navigate("/main"); // หน้านักศึกษา
+        }
 
-        // นำทางไปยังหน้าหลัก
-        navigate("/main");
       } else {
         setErrorMessage(data.message || "เข้าสู่ระบบไม่สำเร็จ");
         console.error("Login failed:", data.message);
@@ -67,12 +71,14 @@ function LoginPage({ setUser }) {
             src="/images/RMUTTO_LOGO.png"
             alt="logo1"
             className="h-24 w-auto"
+            onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/96x96/4A5568/FFFFFF?text=LOGO1" }}
           />
 
           <img
             src="/images/RMUTTO_LOGO2.png"
             alt="logo2"
             className="h-24 w-auto mt-4"
+            onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/96x96/2C5282/FFFFFF?text=LOGO2" }}
           />
 
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
@@ -123,22 +129,11 @@ function LoginPage({ setUser }) {
             </div>
           </div>
 
-          {/* === Error Message === */}
           {errorMessage && (
             <div className="rounded-md bg-red-50 p-4">
               <div className="flex items-center">
-                <svg
-                  className="h-5 w-5 text-red-400"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm-1-12a1 1 0 102 0V9a1 1 0 10-2 0V6zm0 6a1 1 0 102 0 1 1 0 00-2 0z"
-                    clipRule="evenodd"
-                  />
+                <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-1-12a1 1 0 102 0V9a1 1 0 10-2 0V6zm0 6a1 1 0 102 0 1 1 0 00-2 0z" clipRule="evenodd" />
                 </svg>
                 <div className="ml-3">
                   <p className="text-sm font-medium text-red-800">
@@ -149,7 +144,6 @@ function LoginPage({ setUser }) {
             </div>
           )}
 
-          {/* === Submit Button === */}
           <div>
             <button
               type="submit"

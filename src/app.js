@@ -8,12 +8,16 @@ import AllFormPages from './pages/AllFormPages';
 import AcademicRequest6 from './pages/RequestForms/AcademicRequest6';
 import Mainpage from './pages/Mainpage';
 import EditPersonalInfo from './pages/EditPersonalInfo';
-import Home from './pages/home';
+import StaffDashboard from './pages/StaffDashboard';
 import EnrollRequest1 from './pages/RequestForms/EnrollRequest1';
 import EnrollRequest2 from './pages/RequestForms/EnrollRequest2';
+import StudentApprovalPage from './pages/StudentApprovalPage';
+
 function App() {
   const [user, setUser] = useState(() => {
-    return localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
+    // ดึงข้อมูลผู้ใช้จาก LocalStorage
+    const storedData = localStorage.getItem('user');
+    return storedData ? JSON.parse(storedData) : null;
   });
 
   const location = useLocation();
@@ -25,15 +29,24 @@ function App() {
 
   return (
     <>
+      {/* ซ่อน Navbar บนหน้า Login */}
       {location.pathname !== '/' && <Navbar user={user} onLogout={handleLogout} />}
       <Routes>
         <Route path="/" element={<Index setUser={setUser} />} />
         <Route path="/register" element={<RegisterPage />} />
+        
+        {/* Route สำหรับนักศึกษา */}
         <Route path="/main" element={<Mainpage />} />
-        <Route path="/contact" element={<ContactPage />} />
         <Route path="/forms" element={<AllFormPages />} />        
         <Route path="/edit-personal-info" element={<EditPersonalInfo />} />
-        <Route path="/home" element={<Home />} />
+        
+        {/* Route สำหรับเจ้าหน้าที่ */}
+        <Route path="/staff-dashboard" element={<StaffDashboard />} /> {/* *** เพิ่ม Route นี้ *** */}
+        <Route path="/StudentApprovalPage" element={<StudentApprovalPage />} /> {/* หน้าพิจารณาคำร้อง */}
+
+        <Route path="/contact" element={<ContactPage />} />
+        
+        {/* Forms */}
         <Route path="/forms/academic-request-6" element={<AcademicRequest6 />} />
         <Route path="/forms/enroll-request-1" element={<EnrollRequest1 />} />
         <Route path="/forms/enroll-request-2" element={<EnrollRequest2 />} />

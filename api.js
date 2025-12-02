@@ -135,6 +135,55 @@ app.get('/user/:id', async (req, res) => {
   }
 });
 
+// --- API สำหรับดึงนักศึกษาที่รอดำเนินการ (Pending) ---
+app.get('/api/students/pending', async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        s.std_id, 
+        s.std_prefix, 
+        s.std_name, 
+        s.std_email,
+        s.std_tel,
+        d.department_name,
+        f.faculty_name
+      FROM 
+        students s
+      LEFT JOIN 
+        departments d ON s.std_department = d.department_id
+      LEFT JOIN
+        faculty f ON s.std_faculty = f.faculty_id
+      WHERE 
+        s.std_STATUS = 'Pending'
+    `;
+    const [pendingStudents] = await pool.query(query);
+    res.json(pendingStudents);
+  } catch (error) {
+    console.error("DB Error fetching pending students:", error);
+    res.status(500).json({ message: "เกิดข้อผิดพลาดในการดึงข้อมูลนักศึกษาที่รอดำเนินการ" });
+  }
+});
+
+// --- API สำหรับอนุมัตินักศึกษา (เปลี่ยนสถานะเป็น Approved) ---
+app.put('/api/student/approve/:std_id', async (req, res) => {
+  const { std_id } = req.params;
+  try {
+    const [result] = await pool.query(
+      "UPDATE students SET std_STATUS = 'Approved' WHERE std_id = ? AND std_STATUS = 'Pending'",
+      [std_id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "ไม่พบนักศึกษาที่รอดำเนินการ หรือนักศึกษาได้รับการอนุมัติไปแล้ว" });
+    }
+
+    res.json({ message: `อนุมัตินักศึกษา ID ${std_id} เรียบร้อยแล้ว` });
+  } catch (error) {
+    console.error("DB Error approving student:", error);
+    res.status(500).json({ message: "เกิดข้อผิดพลาดในการอนุมัติ" });
+  }
+});
+
 
 
 const PORT = 5000;
