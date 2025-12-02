@@ -7,7 +7,7 @@
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!50503 SET NAMES utf8mb4 */;
+/*!50503 SET NAMES utf8 */;
 /*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
 /*!40103 SET TIME_ZONE='+00:00' */;
 /*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
@@ -18,6 +18,8 @@
 --
 -- Table structure for table `approval_steps`
 --
+
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'root';
 
 DROP TABLE IF EXISTS `approval_steps`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -61,6 +63,7 @@ CREATE TABLE `approvers` (
   `approver_tel` varchar(10) DEFAULT NULL,
   `approver_email` varchar(100) DEFAULT NULL,
   `approver_signature` varchar(255) DEFAULT NULL,
+  `approver_position` int DEFAULT NULL,
   PRIMARY KEY (`approver_id`),
   KEY `fk_approver_department_idx` (`approver_department`),
   CONSTRAINT `fk_approver_department` FOREIGN KEY (`approver_department`) REFERENCES `departments` (`department_id`)
@@ -73,31 +76,8 @@ CREATE TABLE `approvers` (
 
 LOCK TABLES `approvers` WRITE;
 /*!40000 ALTER TABLE `approvers` DISABLE KEYS */;
-INSERT INTO `approvers` VALUES (1,'ดร.','สมชาย ประเสริฐ','somchai.p','1234',7,'0812345678','somchai.p@university.ac.th',NULL),(2,'รศ.','ศิริลักษณ์ วงษา','sirilak.w','abcd',14,'0898765432','sirilak.w@university.ac.th',NULL),(3,'นาย','กิตติพงษ์ รัตนากร','kittipong.r','password',5,'0861122334','kittipong.r@university.ac.th',NULL),(4,'นาย','สิรายุส กาญจนโอฬารศิริ','sirayut.k','hashed_Pw1001',12,'0811234567','sirayut.k@corp.co.th',NULL),(5,'นางสาว','ดารุณี ใจดี','darunee.j','hashed_Pw1002',17,'0929876543','darunee.j@corp.co.th',NULL);
+INSERT INTO `approvers` VALUES (1,'ดร.','อ.ต้องใจ แย้มผกา','tongjai-y.','1234',7,'0812345678','Tongjai.Y@university.ac.th',NULL,2),(2,'รศ.','ศิริลักษณ์ วงษา','sirilak.w','abcd',14,'0898765432','sirilak.w@university.ac.th',NULL,3),(3,'นาย','กิตติพงษ์ รัตนากร','kittipong.r','password',5,'0861122334','kittipong.r@university.ac.th',NULL,4),(4,'นาย','สิรายุส กาญจนโอฬารศิริ','sirayut.k','hashed_Pw1001',12,'0811234567','sirayut.k@corp.co.th',NULL,2),(5,'นางสาว','ดารุณี ใจดี','darunee.j','hashed_Pw1002',17,'0929876543','darunee.j@corp.co.th',NULL,5);
 /*!40000 ALTER TABLE `approvers` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `approvers_position`
---
-
-DROP TABLE IF EXISTS `approvers_position`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `approvers_position` (
-  `user_id` int NOT NULL,
-  `position_id` int DEFAULT NULL,
-  PRIMARY KEY (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `approvers_position`
---
-
-LOCK TABLES `approvers_position` WRITE;
-/*!40000 ALTER TABLE `approvers_position` DISABLE KEYS */;
-/*!40000 ALTER TABLE `approvers_position` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -164,7 +144,7 @@ CREATE TABLE `forms` (
   `description` text,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`form_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -173,6 +153,7 @@ CREATE TABLE `forms` (
 
 LOCK TABLES `forms` WRITE;
 /*!40000 ALTER TABLE `forms` DISABLE KEYS */;
+INSERT INTO `forms` VALUES (1,'ใบคำร้องทั่วไป','ก็ใบคำร้องทั่วไป','2025-10-22 03:15:37');
 /*!40000 ALTER TABLE `forms` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -187,7 +168,7 @@ CREATE TABLE `position` (
   `position_id` int NOT NULL AUTO_INCREMENT,
   `position_name` varchar(45) DEFAULT NULL,
   PRIMARY KEY (`position_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -196,7 +177,7 @@ CREATE TABLE `position` (
 
 LOCK TABLES `position` WRITE;
 /*!40000 ALTER TABLE `position` DISABLE KEYS */;
-INSERT INTO `position` VALUES (1,'นักศึกษา'),(2,'อ.ที่ปรึกษา'),(3,'คณบดี'),(4,'หัวหน้าแผนก');
+INSERT INTO `position` VALUES (1,'นักศึกษา'),(2,'อ.ที่ปรึกษา'),(3,'คณบดี'),(4,'รองคณบดี'),(5,'เจ้าหน้าที่'),(6,'หัวหน้าแผนก');
 /*!40000 ALTER TABLE `position` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -222,59 +203,6 @@ LOCK TABLES `program_of_study` WRITE;
 /*!40000 ALTER TABLE `program_of_study` DISABLE KEYS */;
 INSERT INTO `program_of_study` VALUES (1,'ภาคปกติ'),(2,'ภาคนอกเวลา(จ-ศ)'),(3,'ภาคนอกเวลา(ส-อ)');
 /*!40000 ALTER TABLE `program_of_study` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `registration-related request form`
---
-
-DROP TABLE IF EXISTS `registration-related request form`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `registration-related request form` (
-  `request_form_id` int NOT NULL,
-  `request_form_name` varchar(45) DEFAULT NULL,
-  PRIMARY KEY (`request_form_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `registration-related request form`
---
-
-LOCK TABLES `registration-related request form` WRITE;
-/*!40000 ALTER TABLE `registration-related request form` DISABLE KEYS */;
-INSERT INTO `registration-related request form` VALUES (1,'ใบคำร้องทั่วไป');
-/*!40000 ALTER TABLE `registration-related request form` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `request_approval`
---
-
-DROP TABLE IF EXISTS `request_approval`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `request_approval` (
-  `approval_id` int NOT NULL,
-  `form_type_master_id` int DEFAULT NULL,
-  `request_approval_current_statuscol` int DEFAULT NULL,
-  `approvalstep_id` int DEFAULT NULL,
-  `approver_id` int DEFAULT NULL,
-  `approver_status` varchar(45) DEFAULT NULL,
-  `approval_date` datetime DEFAULT NULL,
-  `comment` varchar(100) DEFAULT NULL,
-  PRIMARY KEY (`approval_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `request_approval`
---
-
-LOCK TABLES `request_approval` WRITE;
-/*!40000 ALTER TABLE `request_approval` DISABLE KEYS */;
-/*!40000 ALTER TABLE `request_approval` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -331,15 +259,18 @@ CREATE TABLE `students` (
   `std_STATUS` varchar(10) DEFAULT NULL,
   `program_id` int DEFAULT NULL,
   `advisor` int DEFAULT NULL,
+  `role` int DEFAULT NULL,
   PRIMARY KEY (`std_id`),
   KEY `fk_std_faculty` (`std_faculty`),
   KEY `fk_std_department` (`std_department`),
   KEY `fk_program_of_study` (`program_id`),
   KEY `fk_std_advisor_idx` (`advisor`),
+  KEY `fk_std_role_idx` (`role`),
   CONSTRAINT `fk_program_of_study` FOREIGN KEY (`program_id`) REFERENCES `program_of_study` (`program_id`),
   CONSTRAINT `fk_std_advisor` FOREIGN KEY (`advisor`) REFERENCES `approvers` (`approver_id`),
   CONSTRAINT `fk_std_department` FOREIGN KEY (`std_department`) REFERENCES `departments` (`department_id`) ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT `fk_std_faculty` FOREIGN KEY (`std_faculty`) REFERENCES `faculty` (`faculty_id`) ON DELETE SET NULL ON UPDATE CASCADE
+  CONSTRAINT `fk_std_faculty` FOREIGN KEY (`std_faculty`) REFERENCES `faculty` (`faculty_id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_std_role` FOREIGN KEY (`role`) REFERENCES `position` (`position_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -349,7 +280,7 @@ CREATE TABLE `students` (
 
 LOCK TABLES `students` WRITE;
 /*!40000 ALTER TABLE `students` DISABLE KEYS */;
-INSERT INTO `students` VALUES ('1','1','นาย','สิรายุส ขั้นเทพ',2,15,'19/3','4','อินทมาระ40','สุทธิสาร','ดินแดง','ดินแดง','กรุงเทพมหานคร','21000','0985340509','Sirayus Kanjanaoransiri ','name@email.com','Pending',3,5),('123','1234','นาง','สิตา ดีใจ',1,7,'1150','6','asd','ยางมะตอย','ดินแดง','ดินแดง','กทม','123','0893333333','facebook_test','sita@rmutto.ac.th','Pending',1,NULL),('650001','pass123','Mr.','Anan Kittipong',1,1,'12','5','Soi 3','Ratchada Rd.','Din Daeng','Din Daeng','Bangkok','10400','0812345678','anan.k','anan@example.com','Confirmed',1,2),('650002','pass234','Ms.','Chanya Wongsa',2,3,'55','2','Soi 7','Silom Rd.','Silom','Bang Rak','Bangkok','10500','0898765432','chanya.w','chanya@example.com','Confirmed',1,3),('650003','pass345','Mr.','Prasert Maneewan',1,6,'88','1','Soi 10','Changklan Rd.','Chang Khlan','Mueang','Chiang Mai','50100','0865551212','prasert.m','prasert@example.com','Confirmed',2,4),('650004','pass456','Mrs.','Sirilak Boonmee',2,6,'101','3','Soi 5','Sukhumvit Rd.','Phra Khanong','Khlong Toei','Bangkok','10110','0823334444','sirilak.b','sirilak@example.com','Confirmed',3,4),('650005','pass567','Mr.','Kittisak Jaidee',1,1,'23','7','Soi 12','Mittraphap Rd.','Nai Mueang','Mueang','Khon Kaen','40000','0857778888','kittisak.j','kittisak@example.com','Confirmed',2,5);
+INSERT INTO `students` VALUES ('1','1','นาย','สิรายุส ก.',2,15,'19/3','4','อินทมาระ 40','สุทธิสาร','ดินแดง','ดินแดง','กรุงเทพมหานคร','21000','0985340509','Sirayus Kanjanaoransiri ','name@email.com','Pending',3,5,1),('650001','pass123','Mr.','Anan Kittipong',1,1,'12','5','Soi 3','Ratchada Rd.','Din Daeng','Din Daeng','Bangkok','10400','0812345678','anan.k','anan@example.com','Confirmed',1,2,1),('650002','pass234','Ms.','Chanya Wongsa',2,3,'55','2','Soi 7','Silom Rd.','Silom','Bang Rak','Bangkok','10500','0898765432','chanya.w','chanya@example.com','Confirmed',1,3,1),('650003','pass345','Mr.','Prasert Maneewan',1,6,'88','1','Soi 10','Changklan Rd.','Chang Khlan','Mueang','Chiang Mai','50100','0865551212','prasert.m','prasert@example.com','Confirmed',2,4,1),('650004','pass456','Mrs.','Sirilak Boonmee',2,6,'101','3','Soi 5','Sukhumvit Rd.','Phra Khanong','Khlong Toei','Bangkok','10110','0823334444','sirilak.b','sirilak@example.com','Confirmed',3,4,1),('650005','pass567','Mr.','Kittisak Jaidee',1,1,'23','7','Soi 12','Mittraphap Rd.','Nai Mueang','Mueang','Khon Kaen','40000','0857778888','kittisak.j','kittisak@example.com','Confirmed',2,5,1);
 /*!40000 ALTER TABLE `students` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -368,7 +299,7 @@ CREATE TABLE `submissions` (
   PRIMARY KEY (`submission_id`),
   KEY `form_id` (`form_id`),
   CONSTRAINT `submissions_ibfk_1` FOREIGN KEY (`form_id`) REFERENCES `forms` (`form_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -377,6 +308,7 @@ CREATE TABLE `submissions` (
 
 LOCK TABLES `submissions` WRITE;
 /*!40000 ALTER TABLE `submissions` DISABLE KEYS */;
+INSERT INTO `submissions` VALUES (1,1,'{\"std_id\": \"1\", \"subject\": \"ขอผ่อนชำระค่าเทอม\", \"program_id\": 3, \"std_faculty\": 2, \"request_reason\": \"เค้าขอผ่อนผันค่าเทอมหน่อยค้าบ\", \"std_department\": 15}','2025-10-22 03:17:11'),(2,1,'{\"std_id\": \"1\", \"subject\": \"ขอลดหย่อนภาษี\", \"program_id\": 3, \"std_faculty\": 2, \"request_reason\": \"ได้ไหมคร้าบ\", \"std_department\": 15}','2025-10-22 06:17:46');
 /*!40000 ALTER TABLE `submissions` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -389,4 +321,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-10-18 13:05:28
+-- Dump completed on 2025-11-24  1:25:55
