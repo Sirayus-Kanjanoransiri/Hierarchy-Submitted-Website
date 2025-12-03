@@ -11,11 +11,6 @@ function AllFormPages() {
   });
   const navigate = useNavigate();
 
-  const hasUserData = () => {
-    // This function assumes 'user' is stored in localStorage to determine login status.
-    return !!localStorage.getItem('std_id');
-  };
-
   const handleClick = (path, event) => {
     event.stopPropagation();
 
@@ -24,12 +19,7 @@ function AllFormPages() {
       console.log('Dropdown item clicked - path is a placeholder.');
       return;
     }
-
-    if (hasUserData()) {
-      navigate(path);
-    } else {
-      navigate('/');
-    }
+navigate(path);
   };
 
   const toggleDropdown = (dropdownName) => {

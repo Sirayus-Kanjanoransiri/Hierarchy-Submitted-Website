@@ -20,7 +20,7 @@ function EditPersonalInfo() {
     // Fetch user data from the backend
     const fetchUserData = async () => {
       try {
-        const response = await fetch('http://localhost:5000/user/123456'); // Replace 123456 with actual student ID
+        const response = await fetch('http://localhost:5000/user/123456'); 
         if (response.ok) {
           const data = await response.json();
           setFormData(data);

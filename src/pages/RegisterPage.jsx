@@ -30,26 +30,20 @@ const facultyDepartmentData = [
 
 function RegisterPage() {
   const [formData, setFormData] = useState({
-    std_id: '',
-    std_password: '',
-    std_confirmPassword: '',
-    std_prefix: '',
-    std_name: '',
-    std_faculty: '', // Correct state key
-    std_department: '',
-    std_address_no: '',
-    std_address_moo: '',
-    std_address_soi: '',
-    std_address_street: '',
-    std_address_tumbol: '',
-    std_address_amphoe: '',
-    std_province: '',
-    std_postcode: '',
-    std_tel: '',
-    std_facebook: '',
-    std_email: '',
-    std_STATUS: '',
-    program_id: '',
+    student_id: '',
+    password: '',
+    confirmPassword: '',
+    full_name: '',
+    department_id: '',
+    email: '',
+    address_no: '',
+    address_moo: '',
+    address_soi: '',
+    address_street: '',
+    address_subdistrict: '',
+    address_district: '',
+    address_province: '',
+    address_postcode: '',
   });
   const [departments, setDepartments] = useState([]);
   const [errorMessage, setErrorMessage] = useState('');
@@ -68,8 +62,7 @@ function RegisterPage() {
     const selectedFaculty = facultyDepartmentData.find(faculty => faculty.value === e.target.value);
     setFormData(prevState => ({
       ...prevState,
-      std_faculty: selectedFaculty?.value || "", // Set faculty value
-      std_department: "", // Reset department
+      department_id: "", // Reset department
     }));
     setDepartments(selectedFaculty?.departments || []); // Update departments
   };
@@ -83,7 +76,7 @@ function RegisterPage() {
     console.log('Form data being sent:', formData); // Debugging log
 
     // Check if passwords match using the correct state keys
-    if (formData.std_password !== formData.std_confirmPassword) {
+    if (formData.password !== formData.confirmPassword) {
       setErrorMessage('รหัสผ่านไม่ตรงกัน');
       return;
     }
@@ -138,66 +131,47 @@ function RegisterPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="std_id" className="block text-sm font-semibold text-gray-700">
+                <label htmlFor="student_id" className="block text-sm font-semibold text-gray-700">
                   รหัสประจำตัว <span className="text-red-500">*</span>
                 </label>
                 <input
-                  id="std_id"
-                  name="std_id"
+                  id="student_id"
+                  name="student_id"
                   type="text"
                   required
-                  value={formData.std_id}
+                  value={formData.student_id}
                   onChange={handleChange}
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition duration-150"
                   placeholder="กรุณากรอกรหัสประจำตัว"
                 />
               </div>
               <div>
-                <label htmlFor="std_prefix" className="block text-sm font-semibold text-gray-700">
-                  คำนำหน้า <span className="text-red-500">*</span>
+                <label htmlFor="full_name" className="block text-sm font-semibold text-gray-700">
+                  ชื่อ-นามสกุล <span className="text-red-500">*</span>
                 </label>
-                <select
-                  id="std_prefix"
-                  name="std_prefix"
+                <input
+                  id="full_name"
+                  name="full_name"
+                  type="text"
                   required
-                  value={formData.std_prefix}
+                  value={formData.full_name}
                   onChange={handleChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white transition duration-150"
-                >
-                  <option value="">เลือกคำนำหน้า</option>
-                  <option value="นาย">นาย</option>
-                  <option value="นาง">นาง</option>
-                  <option value="นางสาว">นางสาว</option>
-                </select>
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                  placeholder="กรุณากรอกชื่อ-นามสกุล"
+                />
               </div>
             </div>
 
             <div>
-              <label htmlFor="std_name" className="block text-sm font-semibold text-gray-700">
-                ชื่อ-นามสกุล <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="std_name"
-                name="std_name"
-                type="text"
-                required
-                value={formData.std_name}
-                onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition duration-150"
-                placeholder="กรุณากรอกชื่อ-นามสกุล"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="std_email" className="block text-sm font-semibold text-gray-700">
+              <label htmlFor="email" className="block text-sm font-semibold text-gray-700">
                 อีเมล <span className="text-red-500">*</span>
               </label>
               <input
-                id="std_email"
-                name="std_email"
+                id="email"
+                name="email"
                 type="email"
                 required
-                value={formData.std_email}
+                value={formData.email}
                 onChange={handleChange}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition duration-150"
                 placeholder="กรุณากรอกอีเมล"
@@ -206,30 +180,30 @@ function RegisterPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="std_password" className="block text-sm font-semibold text-gray-700">
+                <label htmlFor="password" className="block text-sm font-semibold text-gray-700">
                   รหัสผ่าน <span className="text-red-500">*</span>
                 </label>
                 <input
-                  id="std_password"
-                  name="std_password"
+                  id="password"
+                  name="password"
                   type="password"
                   required
-                  value={formData.std_password}
+                  value={formData.password}
                   onChange={handleChange}
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition duration-150"
                   placeholder="กรุณากรอกรหัสผ่าน"
                 />
               </div>
               <div>
-                <label htmlFor="std_confirmPassword" className="block text-sm font-semibold text-gray-700">
+                <label htmlFor="confirmPassword" className="block text-sm font-semibold text-gray-700">
                   ยืนยันรหัสผ่าน <span className="text-red-500">*</span>
                 </label>
                 <input
-                  id="std_confirmPassword"
-                  name="std_confirmPassword"
+                  id="confirmPassword"
+                  name="confirmPassword"
                   type="password"
                   required
-                  value={formData.std_confirmPassword}
+                  value={formData.confirmPassword}
                   onChange={handleChange}
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition duration-150"
                   placeholder="กรุณายืนยันรหัสผ่าน"
@@ -237,95 +211,42 @@ function RegisterPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label htmlFor="std_faculty" className="block text-sm font-semibold text-gray-700">
-                  คณะ <span className="text-red-500">*</span>
-                </label>
-                <select
-                  id="std_faculty"
-                  name="std_faculty" // CORRECTED: Changed name from "faculty" to "std_faculty"
-                  required
-                  value={formData.std_faculty} // CORRECTED: Changed value from "formData.faculty" to "formData.std_faculty"
-                  onChange={handleFacultyChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white transition duration-150"
-                >
-                  <option value="">เลือกคณะ</option>
-                  {facultyDepartmentData.map(faculty => (
-                    <option key={faculty.value} value={faculty.value}>{faculty.display}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="std_department" className="block text-sm font-semibold text-gray-700">
-                  ภาควิชา <span className="text-red-500">*</span>
-                </label>
-                <select
-                  id="std_department"
-                  name="std_department"
-                  required
-                  value={formData.std_department}
-                  onChange={handleChange}
-                  disabled={!formData.std_faculty}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white disabled:bg-gray-100 transition duration-150"
-                >
-                  <option value="">เลือกภาควิชา</option>
-                  {departments.map(department => (
-                    <option key={department.value} value={department.value}>{department.display}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
             <div>
-              <label htmlFor="program_id" className="block text-sm font-semibold text-gray-700">
-                หลักสูตร <span className="text-red-500">*</span>
+              <label htmlFor="faculty" className="block text-sm font-semibold text-gray-700">
+                คณะ <span className="text-red-500">*</span>
               </label>
               <select
-                id="program_id"
-                name="program_id"
-                value={formData.program_id}
+                id="faculty"
+                name="faculty"
                 required
-                onChange={handleChange}
+                onChange={handleFacultyChange}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white transition duration-150"
               >
-                <option value="">เลือกหลักสูตร</option>
-                <option value="1">ภาคปกติ</option>
-                <option value="2">ภาคมสทบ(จ-ศ)</option>
-                <option value="3">ภาคสมทบ(ส-อ)</option>
+                <option value="">เลือกคณะ</option>
+                {facultyDepartmentData.map(faculty => (
+                  <option key={faculty.value} value={faculty.value}>{faculty.display}</option>
+                ))}
               </select>
             </div>
 
             <div>
-              <label htmlFor="std_tel" className="block text-sm font-semibold text-gray-700">
-                เบอร์โทรศัพท์ <span className="text-red-500">*</span>
+              <label htmlFor="department_id" className="block text-sm font-semibold text-gray-700">
+                สาขา <span className="text-red-500">*</span>
               </label>
-              <input
-                id="std_tel"
-                name="std_tel"
-                type="tel" // Use type tel for better mobile keyboard
+              <select
+                id="department_id"
+                name="department_id"
                 required
-                value={formData.std_tel}
+                value={formData.department_id}
                 onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition duration-150"
-                placeholder="กรุณากรอกเบอร์โทรศัพท์"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="std_facebook" className="block text-sm font-semibold text-gray-700">
-                Facebook <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="std_facebook"
-                name="std_facebook"
-                type="text"
-                required
-                value={formData.std_facebook}
-                onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition duration-150"
-                placeholder="กรุณากรอก Facebook"
-              />
+                disabled={departments.length === 0}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white disabled:bg-gray-100 transition duration-150"
+              >
+                <option value="">เลือกสาขา</option>
+                {departments.map(department => (
+                  <option key={department.value} value={department.value}>{department.display}</option>
+                ))}
+              </select>
             </div>
             
           </div>
@@ -340,30 +261,30 @@ function RegisterPage() {
             
             <div className='grid grid-cols-2 gap-3'>
                 <div>
-                    <label htmlFor="std_address_no" className="block text-sm font-semibold text-gray-700">
+                    <label htmlFor="address_no" className="block text-sm font-semibold text-gray-700">
                     บ้านเลขที่ <span className="text-red-500">*</span>
                     </label>
                     <input
-                        id="std_address_no"
-                        name="std_address_no" // CORRECTED: Changed from std_adress_no to std_address_no
+                        id="address_no"
+                        name="address_no"
                         type="text"
                         required
-                        value={formData.std_address_no}
+                        value={formData.address_no}
                         onChange={handleChange}
                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition duration-150"
                         placeholder="กรุณากรอกบ้านเลขที่"
                     />
                 </div>
                 <div>
-                    <label htmlFor="std_address_moo" className="block text-sm font-semibold text-gray-700">
+                    <label htmlFor="address_moo" className="block text-sm font-semibold text-gray-700">
                     หมู่ <span className="text-red-500">*</span>
                     </label>
                     <input
-                        id="std_address_moo"
-                        name="std_address_moo" // CORRECTED: Changed from std_adress_moo to std_address_moo
+                        id="address_moo"
+                        name="address_moo"
                         type="text"
                         required
-                        value={formData.std_address_moo}
+                        value={formData.address_moo}
                         onChange={handleChange}
                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition duration-150"
                         placeholder="กรุณากรอกหมู่"
@@ -373,30 +294,30 @@ function RegisterPage() {
 
             <div className='grid grid-cols-2 gap-3'>
                 <div>
-                    <label htmlFor="std_address_soi" className="block text-sm font-semibold text-gray-700">
+                    <label htmlFor="address_soi" className="block text-sm font-semibold text-gray-700">
                     ซอย <span className="text-red-500">*</span>
                     </label>
                     <input
-                        id="std_address_soi"
-                        name="std_address_soi" // CORRECTED: Changed from std_adress_soi to std_address_soi
+                        id="address_soi"
+                        name="address_soi"
                         type="text"
                         required
-                        value={formData.std_address_soi}
+                        value={formData.address_soi}
                         onChange={handleChange}
                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition duration-150"
                         placeholder="กรุณากรอกซอย"
                     />
                 </div>
                 <div>
-                    <label htmlFor="std_address_street" className="block text-sm font-semibold text-gray-700">
+                    <label htmlFor="address_street" className="block text-sm font-semibold text-gray-700">
                     ถนน <span className="text-red-500">*</span>
                     </label>
                     <input
-                        id="std_address_street"
-                        name="std_address_street" 
+                        id="address_street"
+                        name="address_street" 
                         type="text"
                         required
-                        value={formData.std_address_street}
+                        value={formData.address_street}
                         onChange={handleChange}
                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition duration-150"
                         placeholder="กรุณากรอกถนน"
@@ -406,30 +327,30 @@ function RegisterPage() {
             
             <div className='grid grid-cols-2 gap-3'>
                 <div>
-                    <label htmlFor="std_address_tumbol" className="block text-sm font-semibold text-gray-700">
+                    <label htmlFor="address_subdistrict" className="block text-sm font-semibold text-gray-700">
                     ตำบล <span className="text-red-500">*</span>
                     </label>
                     <input
-                        id="std_address_tumbol"
-                        name="std_address_tumbol" // CORRECTED: Changed from std_adress_tumbol to std_address_tumbol
+                        id="address_subdistrict"
+                        name="address_subdistrict"
                         type="text"
                         required
-                        value={formData.std_address_tumbol}
+                        value={formData.address_subdistrict}
                         onChange={handleChange}
                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition duration-150"
                         placeholder="กรุณากรอกตำบล"
                     />
                 </div>
                 <div>
-                    <label htmlFor="std_address_amphoe" className="block text-sm font-semibold text-gray-700">
+                    <label htmlFor="address_district" className="block text-sm font-semibold text-gray-700">
                     อำเภอ <span className="text-red-500">*</span>
                     </label>
                     <input
-                        id="std_address_amphoe"
-                        name="std_address_amphoe" // CORRECTED: Changed from std_adress_amphoe to std_address_amphoe
+                        id="address_district"
+                        name="address_district"
                         type="text"
                         required
-                        value={formData.std_address_amphoe}
+                        value={formData.address_district}
                         onChange={handleChange}
                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition duration-150"
                         placeholder="กรุณากรอกอำเภอ"
@@ -439,30 +360,30 @@ function RegisterPage() {
 
             <div className='grid grid-cols-2 gap-3'>
                 <div>
-                    <label htmlFor="std_province" className="block text-sm font-semibold text-gray-700">
+                    <label htmlFor="address_province" className="block text-sm font-semibold text-gray-700">
                     จังหวัด <span className="text-red-500">*</span>
                     </label>
                     <input
-                        id="std_province"
-                        name="std_province"
+                        id="address_province"
+                        name="address_province"
                         type="text"
                         required
-                        value={formData.std_province}
+                        value={formData.address_province}
                         onChange={handleChange}
                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition duration-150"
                         placeholder="กรุณากรอกจังหวัด"
                     />
                 </div>
                 <div>
-                    <label htmlFor="std_postcode" className="block text-sm font-semibold text-gray-700">
+                    <label htmlFor="address_postcode" className="block text-sm font-semibold text-gray-700">
                     รหัสไปรษณีย์ <span className="text-red-500">*</span>
                     </label>
                     <input
-                        id="std_postcode"
-                        name="std_postcode"
+                        id="address_postcode"
+                        name="address_postcode"
                         type="text"
                         required
-                        value={formData.std_postcode}
+                        value={formData.address_postcode}
                         onChange={handleChange}
                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition duration-150"
                         placeholder="กรุณากรอกรหัสไปรษณีย์"

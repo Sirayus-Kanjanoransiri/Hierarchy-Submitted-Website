@@ -6,7 +6,6 @@ import RegisterPage from './pages/RegisterPage';
 import ContactPage from './pages/ContactPage';
 import AllFormPages from './pages/AllFormPages';
 import AcademicRequest6 from './pages/RequestForms/AcademicRequest6';
-import Mainpage from './pages/Mainpage';
 import EditPersonalInfo from './pages/EditPersonalInfo';
 import StaffDashboard from './pages/StaffDashboard';
 import EnrollRequest1 from './pages/RequestForms/EnrollRequest1';
@@ -36,7 +35,6 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         
         {/* Route สำหรับนักศึกษา */}
-        <Route path="/main" element={<Mainpage />} />
         <Route path="/forms" element={<AllFormPages />} />        
         <Route path="/edit-personal-info" element={<EditPersonalInfo />} />
         

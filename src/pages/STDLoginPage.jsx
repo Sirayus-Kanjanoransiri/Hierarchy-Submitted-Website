@@ -50,7 +50,7 @@ function LoginPage({ setUser }) {
         if (data.role === 'staff') {
           navigate("/staff-dashboard");
         } else {
-          navigate("/main"); // หน้านักศึกษา
+          navigate("/forms"); // หน้านักศึกษา
         }
 
       } else {

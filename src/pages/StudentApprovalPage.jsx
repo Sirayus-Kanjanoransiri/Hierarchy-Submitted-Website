@@ -112,12 +112,12 @@ function StudentApprovalPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {pendingStudents.map((student) => (
-                  <tr key={student.std_id}>
+                  <tr key={student.student_id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {student.std_id}
+                      {student.student_id}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      {student.std_prefix}{student.std_name}
+                      {student.full_name}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                       {student.faculty_name} / {student.department_name}
