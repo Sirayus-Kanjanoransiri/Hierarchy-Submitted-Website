@@ -27,7 +27,7 @@ app.post('/login', async (req, res) => {
     // Normalize input fields
     const studentID = student_id || std_id;
     const studentPassword = password || std_password;
-    const staffUsername = username;
+    const staffUsername = staffs_id;
     const staffPassword = staff_password;
 
     // ---- CHECK STUDENT LOGIN ----
@@ -49,10 +49,10 @@ app.post('/login', async (req, res) => {
     }
 
     // ---- CHECK STAFF LOGIN(แก้ไขส่วนนี้) ----
-    if (staffUsername && staffPassword) {
+    if (staffs_id && staffPassword) {
       const [staffResult] = await pool.query(
         "SELECT staff_id, username, full_name, email FROM staff WHERE username = ? AND password_hash = ?",
-        [staffUsername, staffPassword]
+        [staffs_id, staffPassword]
       );
 
       if (staffResult.length > 0) {
