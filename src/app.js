@@ -11,6 +11,13 @@ import StaffDashboard from './pages/StaffDashboard';
 import EnrollRequest1 from './pages/RequestForms/EnrollRequest1';
 import EnrollRequest2 from './pages/RequestForms/EnrollRequest2';
 import StudentApprovalPage from './pages/StudentApprovalPage';
+import StaffManagement from './pages/StaffManagement';
+import ApproverManagement from './pages/ApproverManagement';
+import DepartmentManagement from './pages/DepartmentManagement';
+import FacultyManagement from './pages/FacultyManagement';
+import RoleManagement from './pages/RoleManagement';
+import StudentManagement from './pages/StudentManagement';
+import StudentSearch from './pages/StudentSearch';
 
 function App() {
   const [user, setUser] = useState(() => {
@@ -41,6 +48,13 @@ function App() {
         {/* Route สำหรับเจ้าหน้าที่ */}
         <Route path="/staff-dashboard" element={<StaffDashboard />} /> {/* *** เพิ่ม Route นี้ *** */}
         <Route path="/StudentApprovalPage" element={<StudentApprovalPage />} /> {/* หน้าพิจารณาคำร้อง */}
+        <Route path="/manage-staff" element={<StaffManagement />} />
+        <Route path="/manage-approvers" element={<ApproverManagement />} />
+        <Route path="/manage-departments" element={<DepartmentManagement />} />
+        <Route path="/manage-faculty" element={<FacultyManagement />} />
+        <Route path="/manage-roles" element={<RoleManagement />} />
+        <Route path="/manage-students" element={<StudentManagement />} />
+        <Route path="/student-info" element={<StudentSearch />} />
 
         <Route path="/contact" element={<ContactPage />} />
         

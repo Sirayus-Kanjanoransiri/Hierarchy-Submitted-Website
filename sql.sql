@@ -34,7 +34,7 @@ CREATE TABLE `approval_history` (
   PRIMARY KEY (`id`),
   KEY `submission_id` (`submission_id`),
   KEY `approver_id` (`approver_id`),
-  CONSTRAINT `approval_history_ibfk_1` FOREIGN KEY (`submission_id`) REFERENCES `submissions` (`id`),
+  CONSTRAINT `approval_history_ibfk_1` FOREIGN KEY (`submission_id`) REFERENCES `submissions` (`submission_id`),
   CONSTRAINT `approval_history_ibfk_2` FOREIGN KEY (`approver_id`) REFERENCES `approvers` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;

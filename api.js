@@ -51,23 +51,23 @@ app.post('/login', async (req, res) => {
     // ---- CHECK STAFF LOGIN(แก้ไขส่วนนี้) ----
     if (staffs_id && staffPassword) {
       const [staffResult] = await pool.query(
-        "SELECT staff_id, username, full_name, email FROM staff WHERE username = ? AND password_hash = ?",
+        "SELECT staffs_id, username, full_name, email FROM staff WHERE username = ? AND password_hash = ?",
         [staffs_id, staffPassword]
       );
 
       if (staffResult.length > 0) {
-        const { staff_id, username: usernameFromDB, full_name, email } = staffResult[0];
+        const { staffs_id, username: usernameFromDB, full_name, email } = staffResult[0];
 
         // Update last_login
         await pool.query(
-          "UPDATE staff SET last_login = NOW() WHERE staff_id = ?",
-          [staff_id]
+          "UPDATE staff SET last_login = NOW() WHERE staffs_id = ?",
+          [staffs_id]
         );
 
         return res.json({
           message: "เข้าสู่ระบบสำเร็จ (Staff)",
           role: "staff",
-          user: { staff_id, username: usernameFromDB, full_name, email }
+          user: { staffs_id, username: usernameFromDB, full_name, email }
         });
       }
     }
@@ -240,6 +240,539 @@ app.put('/api/student/approve/:student_id', async (req, res) => {
   } catch (error) {
     console.error("DB Error approving student:", error);
     res.status(500).json({ message: "เกิดข้อผิดพลาดในการอนุมัติ" });
+  }
+});
+
+// ============================
+//   STAFF MANAGEMENT (CRUD) - Updated for sql.sql
+// ============================
+
+// 1. ดึงข้อมูลเจ้าหน้าที่ทั้งหมด
+app.get('/api/staff-management', async (req, res) => {
+  try {
+    // เลือกข้อมูลจากตาราง staff
+    const [rows] = await pool.query('SELECT staffs_id, username, full_name, email, role FROM staff'); 
+    // หมายเหตุ: ไม่ดึง password_hash ส่งกลับไปเพื่อความปลอดภัย
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching staff:', error);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการดึงข้อมูล' });
+  }
+});
+
+// 2. เพิ่มเจ้าหน้าที่ใหม่
+app.post('/api/staff-management', async (req, res) => {
+  const { username, password, full_name, email, role } = req.body;
+
+  // ตรวจสอบค่าว่าง (staffs_id เป็น Auto Increment ไม่ต้องรับค่า)
+  if (!username || !password || !full_name || !email) {
+    return res.status(400).json({ message: 'กรุณากรอกข้อมูลให้ครบถ้วน' });
+  }
+
+  try {
+    await pool.query(
+      'INSERT INTO staff (username, password_hash, full_name, email, role) VALUES (?, ?, ?, ?, ?)',
+      [username, password, full_name, email, role || 'เจ้าหน้าที่ทั่วไป']
+    );
+    res.json({ message: 'เพิ่มเจ้าหน้าที่สำเร็จ' });
+  } catch (error) {
+    console.error('Error adding staff:', error);
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(400).json({ message: 'Username หรือ Email นี้มีอยู่แล้ว' });
+    }
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการเพิ่มข้อมูล' });
+  }
+});
+
+// 3. แก้ไขข้อมูลเจ้าหน้าที่
+app.put('/api/staff-management/:id', async (req, res) => {
+  const { id } = req.params;
+  const { username, password, full_name, email, role } = req.body;
+
+  try {
+    // ตรวจสอบว่าจะแก้รหัสผ่านด้วยหรือไม่
+    if (password && password.trim() !== "") {
+        await pool.query(
+            'UPDATE staff SET username=?, password_hash=?, full_name=?, email=?, role=? WHERE staffs_id=?',
+            [username, password, full_name, email, role, id]
+        );
+    } else {
+        // กรณีไม่แก้รหัสผ่าน (ใช้รหัสเดิม)
+        await pool.query(
+            'UPDATE staff SET username=?, full_name=?, email=?, role=? WHERE staffs_id=?',
+            [username, full_name, email, role, id]
+        );
+    }
+    
+    res.json({ message: 'แก้ไขข้อมูลสำเร็จ' });
+  } catch (error) {
+    console.error('Error updating staff:', error);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการแก้ไขข้อมูล' });
+  }
+});
+
+// 4. ลบเจ้าหน้าที่
+app.delete('/api/staff-management/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await pool.query('DELETE FROM staff WHERE staffs_id = ?', [id]);
+    res.json({ message: 'ลบข้อมูลสำเร็จ' });
+  } catch (error) {
+    console.error('Error deleting staff:', error);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการลบข้อมูล' });
+  }
+});
+
+// ============================
+//   APPROVER MANAGEMENT (CRUD)
+// ============================
+
+// 1. ดึงข้อมูล Approvers ทั้งหมด (พร้อมชื่อสาขา)
+app.get('/api/approvers', async (req, res) => {
+  try {
+    const sql = `
+      SELECT a.*, d.department_name 
+      FROM approvers a
+      LEFT JOIN departments d ON a.department_id = d.id
+    `;
+    const [rows] = await pool.query(sql);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching approvers:', error);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการดึงข้อมูลผู้อนุมัติ' });
+  }
+});
+
+// 2. เพิ่ม Approver ใหม่
+app.post('/api/approvers', async (req, res) => {
+  const { 
+    approver_prefix, full_name, username, password, 
+    email, department_id, approver_tel 
+  } = req.body;
+
+  if (!full_name || !username || !password || !email) {
+    return res.status(400).json({ message: 'กรุณากรอกข้อมูลสำคัญให้ครบถ้วน' });
+  }
+
+  try {
+    await pool.query(
+      `INSERT INTO approvers 
+      (approver_prefix, full_name, username, password, email, department_id, approver_tel, is_active) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
+      [approver_prefix, full_name, username, password, email, department_id || null, approver_tel]
+    );
+    res.json({ message: 'เพิ่มผู้อนุมัติสำเร็จ' });
+  } catch (error) {
+    console.error('Error adding approver:', error);
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(400).json({ message: 'Email นี้มีอยู่ในระบบแล้ว' });
+    }
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการเพิ่มข้อมูล' });
+  }
+});
+
+// 3. แก้ไขข้อมูล Approver
+app.put('/api/approvers/:id', async (req, res) => {
+  const { id } = req.params;
+  const { 
+    approver_prefix, full_name, username, password, 
+    email, department_id, approver_tel, is_active 
+  } = req.body;
+
+  try {
+    // เช็คว่ามีการเปลี่ยนรหัสผ่านหรือไม่
+    let sql = '';
+    let params = [];
+
+    if (password && password.trim() !== "") {
+      sql = `UPDATE approvers SET approver_prefix=?, full_name=?, username=?, password=?, email=?, department_id=?, approver_tel=?, is_active=? WHERE id=?`;
+      params = [approver_prefix, full_name, username, password, email, department_id, approver_tel, is_active, id];
+    } else {
+      sql = `UPDATE approvers SET approver_prefix=?, full_name=?, username=?, email=?, department_id=?, approver_tel=?, is_active=? WHERE id=?`;
+      params = [approver_prefix, full_name, username, email, department_id, approver_tel, is_active, id];
+    }
+
+    await pool.query(sql, params);
+    res.json({ message: 'แก้ไขข้อมูลสำเร็จ' });
+  } catch (error) {
+    console.error('Error updating approver:', error);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการแก้ไขข้อมูล' });
+  }
+});
+
+// 4. ลบ Approver
+app.delete('/api/approvers/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('DELETE FROM approvers WHERE id = ?', [id]);
+    res.json({ message: 'ลบข้อมูลสำเร็จ' });
+  } catch (error) {
+    console.error('Error deleting approver:', error);
+    // กรณีติด Foreign Key (เช่น เป็นที่ปรึกษาของนักศึกษาอยู่) อาจลบไม่ได้
+    if (error.code === 'ER_ROW_IS_REFERENCED_2') {
+        return res.status(400).json({ message: 'ไม่สามารถลบได้ เนื่องจากบัญชีนี้ถูกใช้งานในระบบ (เช่น เป็นที่ปรึกษา)' });
+    }
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการลบข้อมูล' });
+  }
+});
+
+// ============================
+//   DEPARTMENT MANAGEMENT (CRUD)
+// ============================
+
+// 1. ดึงข้อมูล Departments ทั้งหมด (พร้อมชื่อคณะ)
+app.get('/api/departments', async (req, res) => {
+  try {
+    const sql = `
+      SELECT d.*, f.faculty_name 
+      FROM departments d
+      LEFT JOIN faculty f ON d.faculty_id = f.id
+      ORDER BY d.id ASC
+    `;
+    const [rows] = await pool.query(sql);
+    res.json(rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error' });
+  }
+});
+
+// 2. เพิ่ม Department ใหม่
+app.post('/api/departments', async (req, res) => {
+  const { department_name, faculty_id } = req.body;
+
+  if (!department_name || !faculty_id) {
+    return res.status(400).json({ message: 'กรุณากรอกชื่อสาขาและเลือกคณะ' });
+  }
+
+  try {
+    await pool.query(
+      'INSERT INTO departments (department_name, faculty_id) VALUES (?, ?)',
+      [department_name, faculty_id]
+    );
+    res.json({ message: 'เพิ่มสาขาวิชาสำเร็จ' });
+  } catch (error) {
+    console.error('Error adding department:', error);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการเพิ่มข้อมูล' });
+  }
+});
+
+// 3. แก้ไข Department
+app.put('/api/departments/:id', async (req, res) => {
+  const { id } = req.params;
+  const { department_name, faculty_id } = req.body;
+
+  try {
+    await pool.query(
+      'UPDATE departments SET department_name = ?, faculty_id = ? WHERE id = ?',
+      [department_name, faculty_id, id]
+    );
+    res.json({ message: 'แก้ไขข้อมูลสำเร็จ' });
+  } catch (error) {
+    console.error('Error updating department:', error);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการแก้ไขข้อมูล' });
+  }
+});
+
+// 4. ลบ Department
+app.delete('/api/departments/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('DELETE FROM departments WHERE id = ?', [id]);
+    res.json({ message: 'ลบข้อมูลสำเร็จ' });
+  } catch (error) {
+    console.error('Error deleting department:', error);
+    // กรณีสาขาถูกใช้งานอยู่ (เช่น มีนักศึกษาสังกัดอยู่) จะลบไม่ได้
+    if (error.code === 'ER_ROW_IS_REFERENCED_2') {
+        return res.status(400).json({ message: 'ไม่สามารถลบได้ เนื่องจากมีข้อมูล (เช่น นักศึกษา/อาจารย์) เชื่อมโยงกับสาขานี้อยู่' });
+    }
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการลบข้อมูล' });
+  }
+});
+
+// ============================
+//   FACULTY MANAGEMENT (CRUD)
+// ============================
+
+// 1. ดึงข้อมูล Faculty ทั้งหมด (มีอยู่แล้วก็ข้ามได้ หรือเช็คให้ชัวร์)
+app.get('/api/faculties', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM faculty ORDER BY id ASC');
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching faculties:', error);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการดึงข้อมูลคณะ' });
+  }
+});
+
+// 2. เพิ่ม Faculty ใหม่
+app.post('/api/faculties', async (req, res) => {
+  const { faculty_name } = req.body;
+
+  if (!faculty_name) {
+    return res.status(400).json({ message: 'กรุณากรอกชื่อคณะ' });
+  }
+
+  try {
+    await pool.query(
+      'INSERT INTO faculty (faculty_name) VALUES (?)',
+      [faculty_name]
+    );
+    res.json({ message: 'เพิ่มคณะสำเร็จ' });
+  } catch (error) {
+    console.error('Error adding faculty:', error);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการเพิ่มข้อมูล' });
+  }
+});
+
+// 3. แก้ไข Faculty
+app.put('/api/faculties/:id', async (req, res) => {
+  const { id } = req.params;
+  const { faculty_name } = req.body;
+
+  try {
+    await pool.query(
+      'UPDATE faculty SET faculty_name = ? WHERE id = ?',
+      [faculty_name, id]
+    );
+    res.json({ message: 'แก้ไขข้อมูลสำเร็จ' });
+  } catch (error) {
+    console.error('Error updating faculty:', error);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการแก้ไขข้อมูล' });
+  }
+});
+
+// 4. ลบ Faculty
+app.delete('/api/faculties/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('DELETE FROM faculty WHERE id = ?', [id]);
+    res.json({ message: 'ลบข้อมูลสำเร็จ' });
+  } catch (error) {
+    console.error('Error deleting faculty:', error);
+    // กรณีคณะถูกใช้งานอยู่ (มีสาขาวิชาสังกัดอยู่) จะลบไม่ได้ (ติด FK)
+    if (error.code === 'ER_ROW_IS_REFERENCED_2') {
+        return res.status(400).json({ message: 'ไม่สามารถลบได้ เนื่องจากมีสาขาวิชาสังกัดคณะนี้อยู่' });
+    }
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการลบข้อมูล' });
+  }
+});
+
+// ============================
+//   ROLE MANAGEMENT (CRUD)
+// ============================
+
+// 1. ดึงข้อมูล Roles ทั้งหมด
+app.get('/api/roles', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM roles ORDER BY id ASC');
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching roles:', error);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการดึงข้อมูลตำแหน่ง' });
+  }
+});
+
+// 2. เพิ่ม Role ใหม่
+app.post('/api/roles', async (req, res) => {
+  const { role_name } = req.body;
+
+  if (!role_name) {
+    return res.status(400).json({ message: 'กรุณากรอกชื่อตำแหน่ง' });
+  }
+
+  try {
+    await pool.query(
+      'INSERT INTO roles (role_name) VALUES (?)',
+      [role_name]
+    );
+    res.json({ message: 'เพิ่มตำแหน่งสำเร็จ' });
+  } catch (error) {
+    console.error('Error adding role:', error);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการเพิ่มข้อมูล' });
+  }
+});
+
+// 3. แก้ไข Role
+app.put('/api/roles/:id', async (req, res) => {
+  const { id } = req.params;
+  const { role_name } = req.body;
+
+  try {
+    await pool.query(
+      'UPDATE roles SET role_name = ? WHERE id = ?',
+      [role_name, id]
+    );
+    res.json({ message: 'แก้ไขข้อมูลสำเร็จ' });
+  } catch (error) {
+    console.error('Error updating role:', error);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการแก้ไขข้อมูล' });
+  }
+});
+
+// 4. ลบ Role
+app.delete('/api/roles/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('DELETE FROM roles WHERE id = ?', [id]);
+    res.json({ message: 'ลบข้อมูลสำเร็จ' });
+  } catch (error) {
+    console.error('Error deleting role:', error);
+    // กรณี Role ถูกใช้งานอยู่ (เช่น ผูกกับ Approver) จะลบไม่ได้
+    if (error.code === 'ER_ROW_IS_REFERENCED_2') {
+        return res.status(400).json({ message: 'ไม่สามารถลบได้ เนื่องจากตำแหน่งนี้ถูกใช้งานอยู่' });
+    }
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการลบข้อมูล' });
+  }
+});
+
+// ============================
+//   STUDENT MANAGEMENT (CRUD)
+// ============================
+
+// 1. ดึงข้อมูลนักศึกษาทั้งหมด (JOIN สาขา และ ที่ปรึกษา)
+app.get('/api/students-list', async (req, res) => {
+  try {
+    const sql = `
+      SELECT s.*, d.department_name, a.full_name AS advisor_name
+      FROM students s
+      LEFT JOIN departments d ON s.department_id = d.id
+      LEFT JOIN approvers a ON s.advisor_id = a.id
+      ORDER BY s.id DESC
+    `;
+    const [rows] = await pool.query(sql);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching students:', error);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการดึงข้อมูลนักศึกษา' });
+  }
+});
+
+// 2. เพิ่มนักศึกษาใหม่
+app.post('/api/students', async (req, res) => {
+  const { 
+    student_id, full_name, password, email, department_id, advisor_id,
+    address_no, address_moo, address_soi, address_street, 
+    address_subdistrict, address_district, address_province, address_postcode,
+    status
+  } = req.body;
+
+  if (!student_id || !full_name || !department_id) {
+    return res.status(400).json({ message: 'กรุณากรอกรหัสนักศึกษา, ชื่อ และสาขาวิชา' });
+  }
+
+  try {
+    const sql = `
+      INSERT INTO students 
+      (student_id, full_name, password, email, department_id, advisor_id,
+       address_no, address_moo, address_soi, address_street,
+       address_subdistrict, address_district, address_province, address_postcode, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    
+    await pool.query(sql, [
+      student_id, full_name, password, email, department_id, advisor_id || null,
+      address_no, address_moo, address_soi, address_street,
+      address_subdistrict, address_district, address_province, address_postcode, status || '0'
+    ]);
+    
+    res.json({ message: 'เพิ่มข้อมูลนักศึกษาสำเร็จ' });
+  } catch (error) {
+    console.error('Error adding student:', error);
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(400).json({ message: 'รหัสนักศึกษานี้มีอยู่ในระบบแล้ว' });
+    }
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการเพิ่มข้อมูล' });
+  }
+});
+
+// 3. แก้ไขข้อมูลนักศึกษา
+app.put('/api/students/:id', async (req, res) => {
+  const { id } = req.params;
+  const { 
+    student_id, full_name, password, email, department_id, advisor_id,
+    address_no, address_moo, address_soi, address_street, 
+    address_subdistrict, address_district, address_province, address_postcode,
+    status
+  } = req.body;
+
+  try {
+    let sql = `
+      UPDATE students SET 
+      student_id=?, full_name=?, email=?, department_id=?, advisor_id=?,
+      address_no=?, address_moo=?, address_soi=?, address_street=?,
+      address_subdistrict=?, address_district=?, address_province=?, address_postcode=?, status=?
+    `;
+    let params = [
+      student_id, full_name, email, department_id, advisor_id || null,
+      address_no, address_moo, address_soi, address_street,
+      address_subdistrict, address_district, address_province, address_postcode, status
+    ];
+
+    // ถ้ามีการส่งรหัสผ่านใหม่มา ให้แก้ด้วย
+    if (password && password.trim() !== "") {
+        sql += `, password=?`;
+        params.push(password);
+    }
+    
+    sql += ` WHERE id=?`;
+    params.push(id);
+
+    await pool.query(sql, params);
+    res.json({ message: 'แก้ไขข้อมูลสำเร็จ' });
+  } catch (error) {
+    console.error('Error updating student:', error);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการแก้ไขข้อมูล' });
+  }
+});
+
+// 4. ลบข้อมูลนักศึกษา
+app.delete('/api/students/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('DELETE FROM students WHERE id = ?', [id]);
+    res.json({ message: 'ลบข้อมูลสำเร็จ' });
+  } catch (error) {
+    console.error('Error deleting student:', error);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการลบข้อมูล' });
+  }
+});
+
+// ============================
+//   STUDENT SEARCH (For Staff View)
+// ============================
+app.get('/api/students/search', async (req, res) => {
+  const { q } = req.query; // รับคำค้นหา (keyword)
+
+  try {
+    // ถ้าไม่มีคำค้นหา ส่งค่าว่างกลับไป
+    if (!q || q.trim() === '') {
+      return res.json([]);
+    }
+
+    const searchTerm = `%${q}%`;
+    const sql = `
+      SELECT 
+        s.*, 
+        d.department_name, 
+        f.faculty_name, 
+        a.full_name AS advisor_name,
+        a.approver_prefix AS advisor_prefix
+      FROM students s
+      LEFT JOIN departments d ON s.department_id = d.id
+      LEFT JOIN faculty f ON d.faculty_id = f.id
+      LEFT JOIN approvers a ON s.advisor_id = a.id
+      WHERE s.student_id LIKE ? OR s.full_name LIKE ?
+      ORDER BY s.student_id ASC
+      LIMIT 20
+    `;
+    
+    const [rows] = await pool.query(sql, [searchTerm, searchTerm]);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error searching students:', error);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการค้นหาข้อมูล' });
   }
 });
 
