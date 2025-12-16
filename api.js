@@ -777,6 +777,88 @@ app.get('/api/students/search', async (req, res) => {
 });
 
 // ============================
+//   UPDATE PROFILE (PERSONAL)
+// ============================
+
+// 1. อัปเดตข้อมูลส่วนตัวนักศึกษา
+app.put('/api/student/update-profile/:id', async (req, res) => {
+  const { id } = req.params; // คือ student_id
+  const { 
+    password, email, 
+    address_no, address_moo, address_soi, address_street,
+    address_subdistrict, address_district, address_province, address_postcode 
+  } = req.body;
+
+  try {
+    let sql = `
+      UPDATE students SET 
+      email = ?,
+      address_no = ?, address_moo = ?, address_soi = ?, address_street = ?,
+      address_subdistrict = ?, address_district = ?, address_province = ?, address_postcode = ?
+    `;
+    let params = [
+      email, 
+      address_no, address_moo, address_soi, address_street,
+      address_subdistrict, address_district, address_province, address_postcode
+    ];
+
+    // ถ้ามีการกรอกรหัสผ่านใหม่ ให้ทำการอัปเดตด้วย
+    if (password && password.trim() !== "") {
+      sql += `, password = ?`;
+      params.push(password);
+    }
+
+    sql += ` WHERE student_id = ?`;
+    params.push(id);
+
+    await pool.query(sql, params);
+    res.json({ message: 'อัปเดตข้อมูลส่วนตัวสำเร็จ' });
+  } catch (error) {
+    console.error('Error updating student profile:', error);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการอัปเดตข้อมูล' });
+  }
+});
+
+// 2. ดึงข้อมูล Staff รายคน (เพื่อนำไปแสดงในฟอร์มแก้ไข)
+app.get('/api/staff/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        // ใช้ staffs_id ตามโครงสร้างไฟล์ของคุณ
+        const [rows] = await pool.query("SELECT staffs_id, username, full_name, email FROM staff WHERE staffs_id = ?", [id]);
+        if (rows.length > 0) res.json(rows[0]);
+        else res.status(404).json({ message: "User not found" });
+    } catch (error) {
+        console.error('Error fetching staff:', error);
+        res.status(500).json({ message: "Error fetching data" });
+    }
+});
+
+// 3. อัปเดตข้อมูลส่วนตัวเจ้าหน้าที่ (Staff)
+app.put('/api/staff/update-profile/:id', async (req, res) => {
+  const { id } = req.params; // staffs_id
+  const { password, email, full_name } = req.body;
+
+  try {
+    let sql = `UPDATE staff SET email = ?, full_name = ?`;
+    let params = [email, full_name];
+
+    if (password && password.trim() !== "") {
+      sql += `, password_hash = ?`; // ใน Login ใช้ชื่อฟิลด์ password_hash
+      params.push(password);
+    }
+
+    sql += ` WHERE staffs_id = ?`;
+    params.push(id);
+
+    await pool.query(sql, params);
+    res.json({ message: 'อัปเดตข้อมูลส่วนตัวสำเร็จ' });
+  } catch (error) {
+    console.error('Error updating staff profile:', error);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการอัปเดตข้อมูล' });
+  }
+});
+
+// ============================
 //            SERVER
 // ============================
 const PORT = 5000;
