@@ -228,7 +228,7 @@ app.put('/api/student/approve/:student_id', async (req, res) => {
 
   try {
     const [result] = await pool.query(
-      "UPDATE students SET status = '0' WHERE student_id = ? AND status = '1'",
+      "UPDATE students SET status = '1' WHERE student_id = ? AND status = '0'",
       [student_id]
     );
 
@@ -238,7 +238,7 @@ app.put('/api/student/approve/:student_id', async (req, res) => {
 
     res.json({ message: `อนุมัตินักศึกษา ID ${student_id} เรียบร้อยแล้ว` });
   } catch (error) {
-    console.error("DB Error approving student:", error);
+    console.error("DB Error:", error);
     res.status(500).json({ message: "เกิดข้อผิดพลาดในการอนุมัติ" });
   }
 });
