@@ -39,9 +39,6 @@ function StaffDashboard() {
                     ></path>
                   </svg>
                 </div>
-                <span className="bg-red-100 text-red-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
-                  งานใหม่
-                </span>
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">
                 อนุมัตินักศึกษา

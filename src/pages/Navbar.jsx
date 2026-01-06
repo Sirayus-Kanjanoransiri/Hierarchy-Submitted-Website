@@ -130,8 +130,11 @@ function Navbar({ user, onLogout }) {
                   <img src="/images/logout1.png" alt="Logout" className="h-8 w-auto group-hover:opacity-75" />
                 </button>
                 
+<<<<<<< HEAD
                 {/* ปุ่ม Setting (ซ่อนสำหรับ Staff และ Approver หรือจะเปิดให้ทุกคนก็ได้) */}
                 {
+=======
+>>>>>>> f2c43199c25e64d5bec79ab7a4d50ce638e9b68d
                   <button
                     onClick={() => navigate('/edit-personal-info')}
                     className="p-1 rounded-full hover:bg-gray-100 transition-colors"
@@ -139,7 +142,10 @@ function Navbar({ user, onLogout }) {
                   >
                     <img src="/images/setting.png" alt="Settings" className="h-6 w-auto" />
                   </button>
+<<<<<<< HEAD
                 }
+=======
+>>>>>>> f2c43199c25e64d5bec79ab7a4d50ce638e9b68d
               </div>
             ) : (
               <Link 
