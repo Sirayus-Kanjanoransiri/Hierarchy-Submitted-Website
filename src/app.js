@@ -18,6 +18,8 @@ import FacultyManagement from './pages/FacultyManagement';
 import RoleManagement from './pages/RoleManagement';
 import StudentManagement from './pages/StudentManagement';
 import StudentSearch from './pages/StudentSearch';
+import Mainscreen from './pages/mainscreen';
+import ApproverDashboard from './pages/ApproverDashBoard';
 
 function App() {
   const [user, setUser] = useState(() => {
@@ -40,6 +42,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Index setUser={setUser} />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/mainscreen" element={<Mainscreen />} />
         
         {/* Route สำหรับนักศึกษา */}
         <Route path="/forms" element={<AllFormPages />} />        
@@ -54,7 +57,10 @@ function App() {
         <Route path="/manage-faculty" element={<FacultyManagement />} />
         <Route path="/manage-roles" element={<RoleManagement />} />
         <Route path="/manage-students" element={<StudentManagement />} />
-        <Route path="/student-info" element={<StudentSearch />} />
+        <Route path="/student-info" element={<StudentSearch />} />.
+
+        {/* Route สำหรับอาจารย์ */}
+        <Route path="/approver-dashboard" element={<ApproverDashboard />} />
 
         <Route path="/contact" element={<ContactPage />} />
         

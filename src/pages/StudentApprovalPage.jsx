@@ -30,13 +30,13 @@ function StudentApprovalPage() {
   }, []);
 
   // ฟังก์ชันสำหรับอนุมัติ
-  const handleApprove = async (stdId) => {
-    if (!window.confirm(`ยืนยันการอนุมัติบัญชีนักศึกษา ID: ${stdId} ใช่หรือไม่?`)) {
+  const handleApprove = async (student_id) => {
+    if (!window.confirm(`ยืนยันการอนุมัติบัญชีนักศึกษา ID: ${student_id} ใช่หรือไม่?`)) {
       return;
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/student/approve/${stdId}`, {
+      const response = await fetch(`http://localhost:5000/api/student/approve/${student_id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -47,7 +47,7 @@ function StudentApprovalPage() {
       }
 
       // รีเฟรชรายการหลังจากอนุมัติสำเร็จ
-      alert(`อนุมัติ ID: ${stdId} เรียบร้อยแล้ว`);
+      alert(`อนุมัติ ID: ${student_id} เรียบร้อยแล้ว`);
       fetchPendingStudents();
 
     } catch (err) {

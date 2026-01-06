@@ -118,7 +118,11 @@ navigate(path);
               <DropdownItem path="/forms/academic-request-3">ทน.03 ใบคำร้องขอรักษาสภาพการเป็นนักศึกษา</DropdownItem>
               <DropdownItem path="/forms/academic-request-4">ทน.04 ใบคำร้องขอผ่อนผันสภาพการเป็นนักศึกษาตามข้อบังคับฯ ข้อ 22.4</DropdownItem>
               <DropdownItem path="/forms/academic-request-5">ทน.05 ใบคำร้องขอศึกษาโดยไม่นับหน่วยกิต (AU)</DropdownItem>
-              <DropdownItem path="/forms/academic-request-6">ทน.06 ใบคำร้องทั่วไป (ทดสอบตัวนี้)</DropdownItem>
+              <DropdownItem path="/forms/academic-request-6">
+                <span className="bg-gradient-to-r from-pink-500 to-yellow-400 text-white px-4 py-2 rounded-lg shadow font-bold border-2 border-pink-600 animate-pulse block">
+                  ทน.06 ใบคำร้องทั่วไป (ทดสอบตัวนี้)
+                </span>
+              </DropdownItem>
               <DropdownItem path="/forms/academic-request-7">ทน.07 ใบคำขอเปลี่ยนชื่อ</DropdownItem>
               <DropdownItem path="/forms/academic-request-8">ทน.08 หนังสือรับรองจากผู้ปกครอง</DropdownItem>
               <DropdownItem path="/forms/academic-request-9">ทน.12 ใบคำร้องขอคืนสภาพการเป็นนักศึกษา</DropdownItem>

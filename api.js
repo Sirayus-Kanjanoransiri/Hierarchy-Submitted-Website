@@ -1,12 +1,13 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require('cors');
-const pool = require('./db');
+const pool = require('./db.js');
 require('dotenv').config();
 
 const app = express();
 app.use(bodyParser.json());
 app.use(cors());
+
 
 
 // ============================
@@ -17,73 +18,75 @@ app.get('/main', (req, res) => {
 });
 
 // ============================
-//          LOGIN ROUTE
-//   ตรวจสอบเข้าสู่ระบบ Student / Staff
+//          LOGIN AUTH
 // ============================
 app.post('/login', async (req, res) => {
-  const { std_id, std_password, staffs_id, staff_password, student_id, password, username } = req.body;
+  // รับค่าเป็น username/password กลางๆ จาก Frontend
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ message: "กรุณากรอกรหัสประจำตัวและรหัสผ่าน" });
+  }
 
   try {
-    // Normalize input fields
-    const studentID = student_id || std_id;
-    const studentPassword = password || std_password;
-    const staffUsername = staffs_id;
-    const staffPassword = staff_password;
+    // -------------------------------------------------------
+    // 1. ตรวจสอบกลุ่ม STUDENT
+    // Column: student_id, password
+    // -------------------------------------------------------
+    const [students] = await pool.query(
+      "SELECT id, student_id, full_name, department_id, status FROM students WHERE student_id = ? AND password = ?",
+      [username, password]
+    );
 
-    // ---- CHECK STUDENT LOGIN ----
-    if (studentID && studentPassword) {
-      const [student] = await pool.query(
-        "SELECT student_id, full_name FROM students WHERE student_id = ? AND password = ?",
-        [studentID, studentPassword]
-      );
-
-      if (student.length > 0) {
-        const { student_id: studentIdFromDB, full_name } = student[0];
-
-        return res.json({
-          message: "เข้าสู่ระบบสำเร็จ (Student)",
-          role: "student",
-          user: { student_id: studentIdFromDB, full_name }
-        });
-      }
+    if (students.length > 0) {
+      // เช็คเพิ่มเติม: ถ้านักศึกษายังไม่อนุมัติ (status = '0' หรือ '2') อาจจะกันไว้ก่อนได้ตาม Business Logic
+      // แต่ในที่นี้จะให้เข้าได้ก่อนตามปกติ
+      return res.json({ 
+        role: "student", 
+        user: students[0] 
+      });
     }
 
-    // ---- CHECK STAFF LOGIN(แก้ไขส่วนนี้) ----
-    if (staffs_id && staffPassword) {
-      const [staffResult] = await pool.query(
-        "SELECT staffs_id, username, full_name, email FROM staff WHERE username = ? AND password_hash = ?",
-        [staffs_id, staffPassword]
-      );
+    // -------------------------------------------------------
+    // 2. ตรวจสอบกลุ่ม STAFF (เจ้าหน้าที่/Admin)
+    // Column: username, password_hash
+    // -------------------------------------------------------
+    const [staffs] = await pool.query(
+      "SELECT staff_id, username, full_name, role, email FROM staff WHERE username = ? AND password_hash = ?",
+      [username, password]
+    );
 
-      if (staffResult.length > 0) {
-        const { staffs_id, username: usernameFromDB, full_name, email } = staffResult[0];
-
-        // Update last_login
-        await pool.query(
-          "UPDATE staff SET last_login = NOW() WHERE staffs_id = ?",
-          [staffs_id]
-        );
-
-        return res.json({
-          message: "เข้าสู่ระบบสำเร็จ (Staff)",
-          role: "staff",
-          user: { staffs_id, username: usernameFromDB, full_name, email }
-        });
-      }
+    if (staffs.length > 0) {
+      return res.json({ 
+        role: "staff", 
+        user: staffs[0] 
+      });
     }
 
-    // ---- LOGIN FAILED ----
-    return res.status(401).json({
-      message: "รหัสหรือข้อมูลการเข้าสู่ระบบไม่ถูกต้อง"
-    });
+    // -------------------------------------------------------
+    // 3. ตรวจสอบกลุ่ม APPROVER (อาจารย์/ผู้อนุมัติ)
+    // Column: username, password, is_active
+    // -------------------------------------------------------
+    const [approvers] = await pool.query(
+      "SELECT id, username, full_name, email, department_id FROM approvers WHERE username = ? AND password = ? AND is_active = 1",
+      [username, password]
+    );
+
+    if (approvers.length > 0) {
+      return res.json({ 
+        role: "approver", 
+        user: approvers[0] 
+      });
+    }
+
+    // หากไม่พบข้อมูลในทั้ง 3 ตาราง
+    return res.status(401).json({ message: "รหัสประจำตัวหรือรหัสผ่านไม่ถูกต้อง" });
 
   } catch (error) {
-    console.error("DB Error:", error);
-    res.status(500).json({ message: "เกิดข้อผิดพลาดในระบบ" });
+    console.error("Login Error:", error);
+    res.status(500).json({ message: "เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล" });
   }
 });
-
-
 
 // ============================
 //        REGISTER ROUTE
@@ -112,14 +115,13 @@ app.post('/register', async (req, res) => {
     );
     res.json({ message: 'ลงทะเบียนสำเร็จ รอการอนุมัติจากแอดมิน' });
   } catch (error) {
-    console.error('DB Error:', error);
+    console.error('pool Error:', error);
     if (error.code === 'ER_DUP_ENTRY') {
       return res.status(400).json({ message: 'รหัสนักศึกษานี้ถูกใช้งานแล้ว' });
     }
     res.status(500).json({ message: 'เกิดข้อผิดพลาดในระบบ' });
   }
 });
-
 
 // ============================
 //     USER INFO WITH ADVISOR
@@ -166,31 +168,102 @@ app.get('/user/:student_id', async (req, res) => {
       res.status(404).json({ message: 'User not found' });
     }
   } catch (error) {
-    console.error('DB Error:', error);
+    console.error('pool Error:', error);
     res.status(500).json({ message: 'เกิดข้อผิดพลาดในระบบ' });
   }
 });
 // ============================
 //   SENDING SUBMISSION FORM DATA
 // ============================
-app.post('/submissions', async (req, res) => {
-  const { student_id, form_id, form_data } = req.body;
+app.post('/api/submissions', async (req, res) => {
+    const { student_id, form_id, form_data } = req.body;
+    const conn = await pool.getConnection();
 
-  if (!student_id || !form_id || !form_data) {
-    return res.status(400).json({ message: 'ข้อมูลไม่ครบถ้วน' });
-  }
+    try {
+        await conn.beginTransaction();
 
-  try {
-    const [result] = await pool.execute(
-      'INSERT INTO submissions (student_id, form_id, form_data) VALUES (?, ?, ?)',
-      [student_id, form_id, JSON.stringify(form_data)]
-    );
+        /* 1. ดึง approval flow */
+        const [flows] = await conn.query(`
+            SELECT step_order, role_id
+            FROM form_approval_flow
+            WHERE form_id = ?
+            ORDER BY step_order ASC
+        `, [form_id]);
 
-    res.json({ message: 'Submission saved', submission_id: result.insertId });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
+        if (!flows.length) {
+            throw new Error('ไม่พบ approval flow ของแบบฟอร์มนี้');
+        }
+
+        /* 2. ดึง advisor ของนักศึกษา */
+        const [[student]] = await conn.query(`
+            SELECT advisor_id
+            FROM students
+            WHERE id = ?
+        `, [student_id]);
+
+        if (!student) {
+            throw new Error('ไม่พบนักศึกษา');
+        }
+
+        /* 3. สร้าง submission */
+        const [subResult] = await conn.query(`
+            INSERT INTO submissions (student_id, form_id, form_data, submission_status)
+            VALUES (?, ?, ?, 'PENDING')
+        `, [student_id, form_id, JSON.stringify(form_data)]);
+
+        const submissionId = subResult.insertId;
+
+        /* 4. สร้าง approval_steps */
+        for (const flow of flows) {
+            let assignedApproverId;
+
+            // กรณี อ.ที่ปรึกษา
+            if (flow.role_id === 1) {
+                if (!student.advisor_id) {
+                    throw new Error('นักศึกษายังไม่ได้กำหนดอาจารย์ที่ปรึกษา');
+                }
+                assignedApproverId = student.advisor_id;
+            } 
+            // role อื่น ๆ
+            else {
+                const [rows] = await conn.query(`
+                    SELECT a.id
+                    FROM approvers a
+                    JOIN approver_roles ar ON a.id = ar.approver_id
+                    WHERE ar.role_id = ?
+                      AND a.is_active = 1
+                    ORDER BY a.id ASC
+                    LIMIT 1
+                `, [flow.role_id]);
+
+                if (!rows.length) {
+                    throw new Error(`ไม่พบผู้อนุมัติสำหรับ role_id = ${flow.role_id}`);
+                }
+
+                assignedApproverId = rows[0].id;
+            }
+
+            await conn.query(`
+                INSERT INTO approval_steps
+                (submission_id, step_order, role_id, assigned_approver_id, status)
+                VALUES (?, ?, ?, ?, 'PENDING')
+            `, [
+                submissionId,
+                flow.step_order,
+                flow.role_id,
+                assignedApproverId
+            ]);
+        }
+
+        await conn.commit();
+        res.json({ message: 'ส่งคำร้องสำเร็จ' });
+
+    } catch (err) {
+        await conn.rollback();
+        res.status(500).json({ error: err.message });
+    } finally {
+        conn.release();
+    }
 });
 
 // ============================
@@ -215,7 +288,7 @@ app.get('/api/students/pending', async (req, res) => {
     const [pendingStudents] = await pool.query(query);
     res.json(pendingStudents);
   } catch (error) {
-    console.error("DB Error fetching pending students:", error);
+    console.error("pool Error fetching pending students:", error);
     res.status(500).json({ message: "เกิดข้อผิดพลาดในการดึงข้อมูลนักศึกษาที่รอดำเนินการ" });
   }
 });
@@ -238,7 +311,7 @@ app.put('/api/student/approve/:student_id', async (req, res) => {
 
     res.json({ message: `อนุมัตินักศึกษา ID ${student_id} เรียบร้อยแล้ว` });
   } catch (error) {
-    console.error("DB Error approving student:", error);
+    console.error("pool Error approving student:", error);
     res.status(500).json({ message: "เกิดข้อผิดพลาดในการอนุมัติ" });
   }
 });
@@ -774,6 +847,78 @@ app.get('/api/students/search', async (req, res) => {
     console.error('Error searching students:', error);
     res.status(500).json({ message: 'เกิดข้อผิดพลาดในการค้นหาข้อมูล' });
   }
+});
+
+// ดึงรายการคำร้องที่รอการอนุมัติ (เฉพาะลำดับที่ถึงคิวของผู้อนุมัติคนนั้น)
+app.get('/api/submissions', (req, res) => {
+    const { approver_id } = req.query;
+    if (!approver_id) return res.status(400).send('Approver ID is required');
+
+    const sql = `
+        SELECT 
+            s.id, 
+            st.full_name AS student_name, 
+            ft.form_name, 
+            s.submitted_at, 
+            s.submission_status, 
+            s.form_data
+        FROM submissions s
+        JOIN students st ON s.student_id = st.id
+        JOIN form_templates ft ON s.form_id = ft.id
+        JOIN approval_steps aps ON s.id = aps.submission_id
+        WHERE aps.assigned_approver_id = ? 
+          AND aps.status = 'PENDING'
+          AND (
+              aps.step_order = 1 
+              OR EXISTS (
+                  SELECT 1 FROM approval_steps prev 
+                  WHERE prev.submission_id = s.id 
+                    AND prev.step_order = aps.step_order - 1 
+                    AND prev.status = 'APPROVED'
+              )
+          );
+    `;
+
+    pool.query(sql, [approver_id], (err, results) => {
+        if (err) return res.status(500).send(err);
+        res.json(results);
+    });
+});
+app.put('/api/submissions/:id/status', (req, res) => {
+    const submissionId = req.params.id;
+    const { status, comment, approver_id } = req.body; // รับ approver_id มาด้วย
+
+    // 1. อัปเดต Step ปัจจุบันของผู้อนุมัติคนนี้
+    const updateStepSql = `
+        UPDATE approval_steps 
+        SET status = ?, reject_reason = ?, updated_at = NOW() 
+        WHERE submission_id = ? AND assigned_approver_id = ? AND status = 'PENDING'
+    `;
+
+    pool.query(updateStepSql, [status, comment, submissionId, approver_id], (err, result) => {
+        if (err) return res.status(500).send(err);
+
+        if (status === 'REJECTED') {
+            // ถ้าปฏิเสธ ให้เปลี่ยนสถานะหลักของ Submission เป็น REJECTED ทันที
+            pool.query('UPDATE submissions SET submission_status = "REJECTED" WHERE id = ?', [submissionId]);
+        } else if (status === 'APPROVED') {
+            // ตรวจสอบว่าเป็น Step สุดท้ายหรือไม่
+            const checkLastStepSql = `
+                SELECT 1 FROM approval_steps 
+                WHERE submission_id = ? AND status = 'PENDING'
+            `;
+            pool.query(checkLastStepSql, [submissionId], (err, pendingSteps) => {
+                if (pendingSteps.length === 0) {
+                    // ถ้าไม่มี Step ค้างแล้ว ให้ Submission เป็น APPROVED
+                    pool.query('UPDATE submissions SET submission_status = "APPROVED" WHERE id = ?', [submissionId]);
+                } else {
+                    // ถ้ายังมี Step ถัดไป ให้สถานะหลักเป็น IN_PROGRESS
+                    pool.query('UPDATE submissions SET submission_status = "IN_PROGRESS" WHERE id = ?', [submissionId]);
+                }
+            });
+        }
+        res.send({ message: 'Status updated successfully' });
+    });
 });
 
 // ============================

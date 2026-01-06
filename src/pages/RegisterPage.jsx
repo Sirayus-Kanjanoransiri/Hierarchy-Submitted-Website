@@ -82,8 +82,6 @@ function RegisterPage() {
     }
 
     try {
-      // NOTE: This fetch call assumes a server is running at http://localhost:5000/register
-      // Ensure the server is running and accessible.
       const response = await fetch('http://localhost:5000/register', {
         method: 'POST',
         headers: {

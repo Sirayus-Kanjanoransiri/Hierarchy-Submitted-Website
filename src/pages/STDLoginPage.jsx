@@ -2,31 +2,20 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
 function LoginPage({ setUser }) {
-  // ใช้ State เพียงชุดเดียวสำหรับ Input Field
+  // State
   const [identification_id, setIdentificationId] = useState("");
   const [password, setPassword] = useState("");
-
-  // State สำหรับการแสดงผลข้อผิดพลาด
   const [errorMessage, setErrorMessage] = useState("");
-
+  
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setErrorMessage("");
+    setErrorMessage(""); // เคลียร์ error เก่าก่อน
 
-    // ตรวจสอบว่าผู้ใช้กรอกข้อมูลครบถ้วนหรือไม่
-    if (!identification_id || !password) {
-      setErrorMessage("กรุณากรอกรหัสประจำตัวและรหัสผ่านให้ครบถ้วน");
-      return;
-    }
-
-    // 2. เตรียมข้อมูลที่จะส่งไป Backend
     const dataToSend = {
-      std_id: identification_id, // ให้ Backend ตรวจสอบ Student
-      std_password: password,
-      staffs_id: identification_id, // ให้ Backend ตรวจสอบ Staff
-      staff_password: password,
+      username: identification_id, 
+      password: password,
     };
 
     try {
@@ -39,62 +28,66 @@ function LoginPage({ setUser }) {
       const data = await response.json();
 
       if (response.ok) {
-        // *** CRITICAL: รวม Role เข้าไปใน Object User ก่อนเก็บ ***
+        // รวม role เข้าไปใน object user เพื่อความสะดวกในการใช้งาน
         const userDataWithRole = { ...data.user, role: data.role };
-
-        // เก็บข้อมูลผู้ใช้และ Role
-        setUser(userDataWithRole);
-        localStorage.setItem("user", JSON.stringify(userDataWithRole)); 
         
-        // ตรวจสอบ Role เพื่อนำทางไปยังหน้า Dashboard ที่ถูกต้อง
-        if (data.role === 'staff') {
-          navigate("/staff-dashboard");
-        } else {
-          navigate("/forms"); // หน้านักศึกษา
+        // อัปเดต State หลัก และ LocalStorage
+        setUser(userDataWithRole);
+        localStorage.setItem("user", JSON.stringify(userDataWithRole));
+
+        // --- Routing แยกตาม Role ---
+        switch (data.role) {
+            case 'staff':
+                navigate("/staff-dashboard");
+                break;
+            case 'approver':
+                navigate("/approver-dashboard");
+                break;
+            case 'student':
+                navigate("/forms"); // หรือหน้า dashboard ของนักเรียน
+                break;
+            default:
+                navigate("/"); // กรณี role แปลกปลอม
         }
 
       } else {
         setErrorMessage(data.message || "เข้าสู่ระบบไม่สำเร็จ");
-        console.error("Login failed:", data.message);
       }
     } catch (error) {
-      setErrorMessage("เกิดข้อผิดพลาดในการเชื่อมต่อ API หรือเซิร์ฟเวอร์");
-      console.error("API Error:", error);
+      console.error("Login Error:", error);
+      setErrorMessage("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
+        
+        {/* Logo Section */}
         <div className="flex flex-col items-center">
           <img
             src="/images/RMUTTO_LOGO.png"
-            alt="logo1"
-            className="h-24 w-auto"
-            onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/96x96/4A5568/FFFFFF?text=LOGO1" }}
+            alt="RMUTTO Logo"
+            className="h-24 w-auto object-contain"
+            onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/96x96/4A5568/FFFFFF?text=LOGO" }}
           />
-
-          <img
-            src="/images/RMUTTO_LOGO2.png"
-            alt="logo2"
-            className="h-24 w-auto mt-4"
-            onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/96x96/2C5282/FFFFFF?text=LOGO2" }}
-          />
-
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            เข้าสู่ระบบ
+           {/* ถ้ามี Logo ที่ 2 ก็ใส่ตรงนี้ */}
+          
+          <h2 className="mt-6 text-center text-2xl font-bold text-gray-900">
+            ระบบคำร้องออนไลน์
           </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            มหาวิทยาลัยเทคโนโลยีราชมงคลตะวันออก
+          </p>
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {/* Input Field สำหรับ ID (ใช้ได้ทั้ง Student/Staff) */}
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div className="mb-4">
-              <label
-                htmlFor="identification_id"
-                className="block text-sm font-medium text-gray-700"
-              >
-                รหัสประจำตัว (นักเรียน/เจ้าหน้าที่)
+          <div className="rounded-md shadow-sm space-y-4">
+            
+            {/* Username Field */}
+            <div>
+              <label htmlFor="identification_id" className="block text-sm font-medium text-gray-700">
+                รหัสผู้ใช้งาน (นักศึกษา / เจ้าหน้าที่ / อาจารย์)
               </label>
               <input
                 id="identification_id"
@@ -103,17 +96,14 @@ function LoginPage({ setUser }) {
                 required
                 value={identification_id}
                 onChange={(e) => setIdentificationId(e.target.value)}
-                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="กรุณากรอกรหัสประจำตัว"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                placeholder="ระบุรหัสประจำตัว หรือ Username"
               />
             </div>
 
-            {/* Input Field สำหรับ Password */}
-            <div className="mb-4">
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700"
-              >
+            {/* Password Field */}
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 รหัสผ่าน
               </label>
               <input
@@ -123,22 +113,27 @@ function LoginPage({ setUser }) {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="กรุณากรอกรหัสผ่าน"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                placeholder="ระบุรหัสผ่าน"
               />
             </div>
           </div>
 
+          {/* Error Message Area */}
           {errorMessage && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="flex items-center">
-                <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-1-12a1 1 0 102 0V9a1 1 0 10-2 0V6zm0 6a1 1 0 102 0 1 1 0 00-2 0z" clipRule="evenodd" />
-                </svg>
+            <div className="rounded-md bg-red-50 p-4 border border-red-200">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  {/* Icon X */}
+                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-red-800">
-                    {errorMessage}
-                  </p>
+                  <h3 className="text-sm font-medium text-red-800">เกิดข้อผิดพลาด</h3>
+                  <div className="mt-2 text-sm text-red-700">
+                    <p>{errorMessage}</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -147,18 +142,18 @@ function LoginPage({ setUser }) {
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out"
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150"
             >
               เข้าสู่ระบบ
             </button>
           </div>
 
-          <div className="text-sm text-center mt-4">
+          <div className="text-center mt-4">
             <Link
               to="/register"
-              className="font-medium text-blue-600 hover:text-blue-500"
+              className="font-medium text-blue-600 hover:text-blue-500 text-sm"
             >
-              ยังไม่มีบัญชี? ลงทะเบียนที่นี่
+              ยังไม่มีบัญชีนักศึกษา? ลงทะเบียนที่นี่
             </Link>
           </div>
         </form>
