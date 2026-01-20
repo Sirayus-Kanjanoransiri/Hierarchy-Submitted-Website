@@ -26,7 +26,7 @@ function EditPersonalInfo() {
       const parsedUser = JSON.parse(storedUser);
       setUser(parsedUser);
       // ตรวจสอบ Role
-      setRole(parsedUser.role || (parsedUser.staffs_id ? 'staff' : 'student'));
+      setRole(parsedUser.role || (parsedUser.staff_id ? 'staff' : 'student'));
       
       fetchCurrentData(parsedUser);
     } else {
@@ -37,11 +37,18 @@ function EditPersonalInfo() {
   const fetchCurrentData = async (currentUser) => {
     try {
       let response;
-      const userRole = currentUser.role || (currentUser.staffs_id ? 'staff' : 'student');
+      const userRole = currentUser.role || (currentUser.staff_id ? 'staff' : 'student');
 
       if (userRole === 'staff') {
         // Staff
-        response = await axios.get(`http://localhost:5000/api/staff/${currentUser.staffs_id}`);
+        const staffId = currentUser.id || currentUser.staff_id || currentUser.staff_id;
+        
+        if (!staffId) {
+            throw new Error("ไม่พบรหัสเจ้าหน้าที่ (Staff ID)");
+        }
+
+        response = await axios.get(`http://localhost:5000/api/staff/${staffId}`);
+        
         setFormData(prev => ({
             ...prev,
             full_name: response.data.full_name,
@@ -80,7 +87,9 @@ function EditPersonalInfo() {
 
     try {
       if (role === 'staff') {
-        await axios.put(`http://localhost:5000/api/staff/update-profile/${user.staffs_id}`, {
+        const staffId = user.id || user.staff_id || user.staff_id;
+
+        await axios.put(`http://localhost:5000/api/staff/update-profile/${staffId}`, {
             email: formData.email,
             password: formData.password,
             full_name: formData.full_name

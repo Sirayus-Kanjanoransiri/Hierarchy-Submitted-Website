@@ -51,15 +51,15 @@ app.post('/login', async (req, res) => {
     // 2. ตรวจสอบกลุ่ม STAFF (เจ้าหน้าที่/Admin)
     // Column: username, password_hash
     // -------------------------------------------------------
-    const [staffs] = await pool.query(
+    const [staff] = await pool.query(
       "SELECT staff_id, username, full_name, role, email FROM staff WHERE username = ? AND password_hash = ?",
       [username, password]
     );
 
-    if (staffs.length > 0) {
+    if (staff.length > 0) {
       return res.json({ 
         role: "staff", 
-        user: staffs[0] 
+        user: staff[0] 
       });
     }
 
@@ -311,11 +311,9 @@ app.put('/api/student/approve/:student_id', async (req, res) => {
 
     res.json({ message: `อนุมัตินักศึกษา ID ${student_id} เรียบร้อยแล้ว` });
   } catch (error) {
-<<<<<<< HEAD
+
     console.error("pool Error approving student:", error);
-=======
     console.error("DB Error:", error);
->>>>>>> f2c43199c25e64d5bec79ab7a4d50ce638e9b68d
     res.status(500).json({ message: "เกิดข้อผิดพลาดในการอนุมัติ" });
   }
 });
@@ -328,7 +326,7 @@ app.put('/api/student/approve/:student_id', async (req, res) => {
 app.get('/api/staff-management', async (req, res) => {
   try {
     // เลือกข้อมูลจากตาราง staff
-    const [rows] = await pool.query('SELECT staffs_id, username, full_name, email, role FROM staff'); 
+    const [rows] = await pool.query('SELECT staff_id, username, full_name, email, role FROM staff'); 
     // หมายเหตุ: ไม่ดึง password_hash ส่งกลับไปเพื่อความปลอดภัย
     res.json(rows);
   } catch (error) {
@@ -341,7 +339,7 @@ app.get('/api/staff-management', async (req, res) => {
 app.post('/api/staff-management', async (req, res) => {
   const { username, password, full_name, email, role } = req.body;
 
-  // ตรวจสอบค่าว่าง (staffs_id เป็น Auto Increment ไม่ต้องรับค่า)
+  // ตรวจสอบค่าว่าง (staff_id เป็น Auto Increment ไม่ต้องรับค่า)
   if (!username || !password || !full_name || !email) {
     return res.status(400).json({ message: 'กรุณากรอกข้อมูลให้ครบถ้วน' });
   }
@@ -370,13 +368,13 @@ app.put('/api/staff-management/:id', async (req, res) => {
     // ตรวจสอบว่าจะแก้รหัสผ่านด้วยหรือไม่
     if (password && password.trim() !== "") {
         await pool.query(
-            'UPDATE staff SET username=?, password_hash=?, full_name=?, email=?, role=? WHERE staffs_id=?',
+            'UPDATE staff SET username=?, password_hash=?, full_name=?, email=?, role=? WHERE staff_id=?',
             [username, password, full_name, email, role, id]
         );
     } else {
         // กรณีไม่แก้รหัสผ่าน (ใช้รหัสเดิม)
         await pool.query(
-            'UPDATE staff SET username=?, full_name=?, email=?, role=? WHERE staffs_id=?',
+            'UPDATE staff SET username=?, full_name=?, email=?, role=? WHERE staff_id=?',
             [username, full_name, email, role, id]
         );
     }
@@ -393,7 +391,7 @@ app.delete('/api/staff-management/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
-    await pool.query('DELETE FROM staff WHERE staffs_id = ?', [id]);
+    await pool.query('DELETE FROM staff WHERE staff_id = ?', [id]);
     res.json({ message: 'ลบข้อมูลสำเร็จ' });
   } catch (error) {
     console.error('Error deleting staff:', error);
@@ -972,8 +970,8 @@ app.put('/api/student/update-profile/:id', async (req, res) => {
 app.get('/api/staff/:id', async (req, res) => {
     const { id } = req.params;
     try {
-        // ใช้ staffs_id ตามโครงสร้างไฟล์ของคุณ
-        const [rows] = await pool.query("SELECT staffs_id, username, full_name, email FROM staff WHERE staffs_id = ?", [id]);
+        // ใช้ staff_id ตามโครงสร้างไฟล์ของคุณ
+        const [rows] = await pool.query("SELECT staff_id, username, full_name, email FROM staff WHERE staff_id = ?", [id]);
         if (rows.length > 0) res.json(rows[0]);
         else res.status(404).json({ message: "User not found" });
     } catch (error) {
@@ -984,7 +982,7 @@ app.get('/api/staff/:id', async (req, res) => {
 
 // 3. อัปเดตข้อมูลส่วนตัวเจ้าหน้าที่ (Staff)
 app.put('/api/staff/update-profile/:id', async (req, res) => {
-  const { id } = req.params; // staffs_id
+  const { id } = req.params; // staff_id
   const { password, email, full_name } = req.body;
 
   try {
@@ -996,7 +994,7 @@ app.put('/api/staff/update-profile/:id', async (req, res) => {
       params.push(password);
     }
 
-    sql += ` WHERE staffs_id = ?`;
+    sql += ` WHERE staff_id = ?`;
     params.push(id);
 
     await pool.query(sql, params);

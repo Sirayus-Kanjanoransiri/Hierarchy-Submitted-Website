@@ -5,7 +5,7 @@ import { Link, useLocation } from "react-router-dom";
 function StudentManagement() {
   const [students, setStudents] = useState([]);
   const [departments, setDepartments] = useState([]);
-  const [approvers, setApprovers] = useState([]); // สำหรับเลือกอาจารย์ที่ปรึกษา
+  const [approvers, setApprovers] = useState([]);
   const location = useLocation();
 
   const initialFormState = {
@@ -31,30 +31,55 @@ function StudentManagement() {
   const [isEditing, setIsEditing] = useState(false);
   const [message, setMessage] = useState("");
 
-  // โหลดข้อมูลทั้งหมดเมื่อเข้าหน้าเว็บ
+  // รวมการโหลดข้อมูลและการเช็ค State ไว้ใน useEffect เดียวกันเพื่อแก้ปัญหา Timing
   useEffect(() => {
-    fetchData();
+    const initPage = async () => {
+      try {
+        // 1. โหลดข้อมูลพื้นฐานให้เสร็จก่อน (Students, Departments, Approvers)
+        const [stuRes, deptRes, appRes] = await Promise.all([
+          axios.get("http://localhost:5000/api/students-list"),
+          axios.get("http://localhost:5000/api/departments"),
+          axios.get("http://localhost:5000/api/approvers"),
+        ]);
 
-    // ตรวจสอบว่ามีข้อมูลส่งมาจากหน้า Approval หรือไม่
-    if (location.state && location.state.editStudent) {
-      handleEdit(location.state.editStudent);
-    }
-  }, [location.state]);
+        setStudents(stuRes.data);
+        setDepartments(deptRes.data);
+        setApprovers(appRes.data);
 
-  const fetchData = async () => {
-    try {
-      const [stuRes, deptRes, appRes] = await Promise.all([
-        axios.get("http://localhost:5000/api/students-list"),
-        axios.get("http://localhost:5000/api/departments"),
-        axios.get("http://localhost:5000/api/approvers"),
-      ]);
-      setStudents(stuRes.data);
-      setDepartments(deptRes.data);
-      setApprovers(appRes.data);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-    }
-  };
+        // 2. หลังจากข้อมูลพร้อมแล้ว ค่อยตรวจสอบว่ามีข้อมูลส่งมาจากหน้า Approval หรือไม่
+        if (location.state && location.state.editStudent) {
+          const studentData = location.state.editStudent;
+          console.log("Data received from Approval:", studentData); // เช็ค log ดูว่าข้อมูลมาครบไหม
+
+          // *** แก้ปัญหา Dropdown ไม่ขึ้น ***
+          // หา department_id โดยเทียบจากชื่อ (ถ้าไม่มี ID ติดมา)
+          let targetDeptId = studentData.department_id;
+          
+          if (!targetDeptId && studentData.department_name) {
+            const foundDept = deptRes.data.find(d => d.department_name === studentData.department_name);
+            if (foundDept) {
+              targetDeptId = foundDept.id;
+            }
+          }
+
+          setFormData({
+            ...studentData,
+            department_id: targetDeptId || "", // ถ้าหาไม่ได้จริงๆ ให้เป็นค่าว่าง (เพื่อไม่ให้เป็น undefined)
+            password: "", 
+            advisor_id: studentData.advisor_id || "",
+          });
+          setIsEditing(true);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+
+      } catch (error) {
+        console.error("Error initializing page:", error);
+        setMessage("ไม่สามารถโหลดข้อมูลได้");
+      }
+    };
+
+    initPage();
+  }, [location.state]); // รันเมื่อเข้ามาหน้านี้
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -76,9 +101,14 @@ function StudentManagement() {
         setMessage("เพิ่มข้อมูลเรียบร้อย");
       }
 
+      // รีเซ็ตฟอร์มและโหลดข้อมูลใหม่
       setFormData(initialFormState);
       setIsEditing(false);
-      fetchData(); // โหลดข้อมูลใหม่
+      
+      // โหลดข้อมูลรายชื่อนักศึกษาใหม่ (แบบย่อ ไม่ต้องโหลดทั้งหมดใหม่)
+      const res = await axios.get("http://localhost:5000/api/students-list");
+      setStudents(res.data);
+      
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error) {
       setMessage(
@@ -90,8 +120,9 @@ function StudentManagement() {
   const handleEdit = (item) => {
     setFormData({
       ...item,
-      password: "", // ไม่แสดงรหัสผ่านเดิม
+      password: "", 
       advisor_id: item.advisor_id || "",
+      department_id: item.department_id || "", // ป้องกัน undefined
     });
     setIsEditing(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -101,7 +132,8 @@ function StudentManagement() {
     if (window.confirm("คุณต้องการลบข้อมูลนักศึกษานี้ใช่หรือไม่?")) {
       try {
         await axios.delete(`http://localhost:5000/api/students/${id}`);
-        fetchData();
+        const res = await axios.get("http://localhost:5000/api/students-list");
+        setStudents(res.data);
       } catch (error) {
         alert(
           "ลบไม่ได้: " + (error.response?.data?.message || "เกิดข้อผิดพลาด")
@@ -150,7 +182,6 @@ function StudentManagement() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* 1. ข้อมูลบัญชีและส่วนตัว */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -214,7 +245,7 @@ function StudentManagement() {
                   className="w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white"
                 >
                   <option value="0">รอพิจารณา</option>
-                  <option value="1">อนุมัติแล้ว</option>
+                  <option value="1">อนุมัติ</option>
                   <option value="2">ปฏิเสธ/ระงับ</option>
                 </select>
               </div>
@@ -222,7 +253,6 @@ function StudentManagement() {
 
             <hr className="border-gray-200" />
 
-            {/* 2. การศึกษา */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -265,83 +295,23 @@ function StudentManagement() {
 
             <hr className="border-gray-200" />
 
-            {/* 3. ที่อยู่ (ย่อๆ) */}
             <h3 className="text-md font-medium text-gray-900">ข้อมูลที่อยู่</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <input
-                type="text"
-                name="address_no"
-                placeholder="เลขที่"
-                value={formData.address_no}
-                onChange={handleChange}
-                className="p-2 border rounded"
-              />
-              <input
-                type="text"
-                name="address_moo"
-                placeholder="หมู่"
-                value={formData.address_moo}
-                onChange={handleChange}
-                className="p-2 border rounded"
-              />
-              <input
-                type="text"
-                name="address_soi"
-                placeholder="ซอย"
-                value={formData.address_soi}
-                onChange={handleChange}
-                className="p-2 border rounded"
-              />
-              <input
-                type="text"
-                name="address_street"
-                placeholder="ถนน"
-                value={formData.address_street}
-                onChange={handleChange}
-                className="p-2 border rounded"
-              />
-
-              <input
-                type="text"
-                name="address_subdistrict"
-                placeholder="แขวง/ตำบล"
-                value={formData.address_subdistrict}
-                onChange={handleChange}
-                className="p-2 border rounded"
-              />
-              <input
-                type="text"
-                name="address_district"
-                placeholder="เขต/อำเภอ"
-                value={formData.address_district}
-                onChange={handleChange}
-                className="p-2 border rounded"
-              />
-              <input
-                type="text"
-                name="address_province"
-                placeholder="จังหวัด"
-                value={formData.address_province}
-                onChange={handleChange}
-                className="p-2 border rounded"
-              />
-              <input
-                type="text"
-                name="address_postcode"
-                placeholder="รหัสไปรษณีย์"
-                value={formData.address_postcode}
-                onChange={handleChange}
-                className="p-2 border rounded"
-              />
+              <input type="text" name="address_no" placeholder="เลขที่" value={formData.address_no || ""} onChange={handleChange} className="p-2 border rounded" />
+              <input type="text" name="address_moo" placeholder="หมู่" value={formData.address_moo || ""} onChange={handleChange} className="p-2 border rounded" />
+              <input type="text" name="address_soi" placeholder="ซอย" value={formData.address_soi || ""} onChange={handleChange} className="p-2 border rounded" />
+              <input type="text" name="address_street" placeholder="ถนน" value={formData.address_street || ""} onChange={handleChange} className="p-2 border rounded" />
+              <input type="text" name="address_subdistrict" placeholder="แขวง/ตำบล" value={formData.address_subdistrict || ""} onChange={handleChange} className="p-2 border rounded" />
+              <input type="text" name="address_district" placeholder="เขต/อำเภอ" value={formData.address_district || ""} onChange={handleChange} className="p-2 border rounded" />
+              <input type="text" name="address_province" placeholder="จังหวัด" value={formData.address_province || ""} onChange={handleChange} className="p-2 border rounded" />
+              <input type="text" name="address_postcode" placeholder="รหัสไปรษณีย์" value={formData.address_postcode || ""} onChange={handleChange} className="p-2 border rounded" />
             </div>
 
             <div className="flex gap-3 mt-4">
               <button
                 type="submit"
                 className={`flex-1 py-2 px-4 rounded-md text-white font-medium transition-colors ${
-                  isEditing
-                    ? "bg-yellow-500 hover:bg-yellow-600"
-                    : "bg-blue-600 hover:bg-blue-700"
+                  isEditing ? "bg-yellow-500 hover:bg-yellow-600" : "bg-blue-600 hover:bg-blue-700"
                 }`}
               >
                 {isEditing ? "บันทึกการแก้ไข" : "เพิ่มข้อมูล"}
@@ -364,85 +334,41 @@ function StudentManagement() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-100">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  รหัสนักศึกษา
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  ชื่อ-นามสกุล
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  สาขาวิชา
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  สถานะ
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  จัดการ
-                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">รหัสนักศึกษา</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ชื่อ-นามสกุล</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">สาขาวิชา</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">สถานะ</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">จัดการ</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {students.length > 0 ? (
                 students.map((item) => (
                   <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                      {item.student_id}
-                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{item.student_id}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {item.full_name}
                       <div className="text-xs text-gray-500">{item.email}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {item.department_name}
-                      {item.advisor_name && (
-                        <div className="text-xs text-indigo-500">
-                          ที่ปรึกษา: {item.advisor_name}
-                        </div>
-                      )}
+                      {item.advisor_name && <div className="text-xs text-indigo-500">ที่ปรึกษา: {item.advisor_name}</div>}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                        ${
-                          item.status === "1"
-                            ? "bg-green-100 text-green-800"
-                            : item.status === "2"
-                            ? "bg-red-100 text-red-800"
-                            : "bg-yellow-100 text-yellow-800"
-                        }`}
-                      >
-                        {item.status === "1"
-                          ? "อนุมัติ"
-                          : item.status === "2"
-                          ? "ปฏิเสธ"
-                          : "รอพิจารณา"}
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        item.status === "1" ? "bg-green-100 text-green-800" : item.status === "2" ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800"
+                      }`}>
+                        {item.status === "1" ? "อนุมัติ" : item.status === "2" ? "ปฏิเสธ" : "รอพิจารณา"}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => handleEdit(item)}
-                        className="text-indigo-600 hover:text-indigo-900 mr-4"
-                      >
-                        แก้ไข
-                      </button>
-                      <button
-                        onClick={() => handleDelete(item.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        ลบ
-                      </button>
+                      <button onClick={() => handleEdit(item)} className="text-indigo-600 hover:text-indigo-900 mr-4">แก้ไข</button>
+                      <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-900">ลบ</button>
                     </td>
                   </tr>
                 ))
               ) : (
-                <tr>
-                  <td
-                    colSpan="5"
-                    className="px-6 py-4 text-center text-sm text-gray-500"
-                  >
-                    ไม่พบข้อมูลนักศึกษา
-                  </td>
-                </tr>
+                <tr><td colSpan="5" className="px-6 py-4 text-center text-sm text-gray-500">ไม่พบข้อมูลนักศึกษา</td></tr>
               )}
             </tbody>
           </table>

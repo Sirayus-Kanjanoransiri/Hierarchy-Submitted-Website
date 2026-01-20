@@ -7,7 +7,7 @@ function StaffManagement() {
   
   // State สำหรับฟอร์ม (ตรงกับตาราง staff ใน sql.sql)
   const [formData, setFormData] = useState({
-    staffs_id: '',
+    staff_id: '',
     username: '',
     password: '', // ใช้รับค่าเพื่อส่งไปเก็บใน password_hash
     full_name: '',
@@ -19,10 +19,10 @@ function StaffManagement() {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    fetchStaffs();
+    fetchstaff();
   }, []);
 
-  const fetchStaffs = async () => {
+  const fetchstaff = async () => {
     try {
       const response = await axios.get('http://localhost:5000/api/staff-management');
       setStaffList(response.data);
@@ -42,7 +42,7 @@ function StaffManagement() {
     try {
       if (isEditing) {
         // แก้ไข
-        await axios.put(`http://localhost:5000/api/staff-management/${formData.staffs_id}`, formData);
+        await axios.put(`http://localhost:5000/api/staff-management/${formData.staff_id}`, formData);
         setMessage('แก้ไขข้อมูลเรียบร้อย');
       } else {
         // เพิ่มใหม่
@@ -51,9 +51,9 @@ function StaffManagement() {
       }
       
       // รีเซ็ตฟอร์ม
-      setFormData({ staffs_id: '', username: '', password: '', full_name: '', email: '', role: 'เจ้าหน้าที่ทั่วไป' });
+      setFormData({ staff_id: '', username: '', password: '', full_name: '', email: '', role: 'เจ้าหน้าที่ทั่วไป' });
       setIsEditing(false);
-      fetchStaffs();
+      fetchstaff();
     } catch (error) {
       setMessage('เกิดข้อผิดพลาด: ' + (error.response?.data?.message || error.message));
     }
@@ -72,7 +72,7 @@ function StaffManagement() {
     if (window.confirm('ยืนยันที่จะลบข้อมูลเจ้าหน้าที่นี้?')) {
       try {
         await axios.delete(`http://localhost:5000/api/staff-management/${id}`);
-        fetchStaffs();
+        fetchstaff();
       } catch (error) {
         alert('เกิดข้อผิดพลาดในการลบ');
       }
@@ -80,7 +80,7 @@ function StaffManagement() {
   };
 
   const handleCancel = () => {
-    setFormData({ staffs_id: '', username: '', password: '', full_name: '', email: '', role: 'เจ้าหน้าที่ทั่วไป' });
+    setFormData({ staff_id: '', username: '', password: '', full_name: '', email: '', role: 'เจ้าหน้าที่ทั่วไป' });
     setIsEditing(false);
     setMessage('');
   };
@@ -206,8 +206,8 @@ function StaffManagement() {
             <tbody className="bg-white divide-y divide-gray-200">
               {staffList.length > 0 ? (
                 staffList.map((staff) => (
-                  <tr key={staff.staffs_id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{staff.staffs_id}</td>
+                  <tr key={staff.staff_id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{staff.staff_id}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{staff.full_name}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{staff.username}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{staff.email}</td>
@@ -224,7 +224,7 @@ function StaffManagement() {
                         แก้ไข
                       </button>
                       <button
-                        onClick={() => handleDelete(staff.staffs_id)}
+                        onClick={() => handleDelete(staff.staff_id)}
                         className="text-red-600 hover:text-red-900"
                       >
                         ลบ

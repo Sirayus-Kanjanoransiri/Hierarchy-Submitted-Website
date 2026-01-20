@@ -27,38 +27,8 @@ function StudentApprovalPage() {
     fetchPendingStudents();
   }, []);
 
-<<<<<<< HEAD
-  // ฟังก์ชันสำหรับอนุมัติ
-  const handleApprove = async (student_id) => {
-    if (!window.confirm(`ยืนยันการอนุมัติบัญชีนักศึกษา ID: ${student_id} ใช่หรือไม่?`)) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`http://localhost:5000/api/student/approve/${student_id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Approval failed');
-      }
-
-      // รีเฟรชรายการหลังจากอนุมัติสำเร็จ
-      alert(`อนุมัติ ID: ${student_id} เรียบร้อยแล้ว`);
-      fetchPendingStudents();
-
-    } catch (err) {
-      alert('เกิดข้อผิดพลาดในการอนุมัติ: ' + err.message);
-      console.error(err);
-    }
-=======
-  // ฟังก์ชันส่งไปหน้าจัดการ (ยังไม่อนุมัติทันทีตามที่คุณต้องการ)
   const handleGoToManage = (student) => {
-    // ส่งข้อมูลนักศึกษาผ่าน state ไปยังหน้า /manage-students เพื่อไปเลือกที่ปรึกษาหรือกดอนุมัติที่นั่น
     navigate('/manage-students', { state: { editStudent: student } });
->>>>>>> f2c43199c25e64d5bec79ab7a4d50ce638e9b68d
   };
 
   if (loading) return <div className="text-center mt-10 p-5 text-indigo-600 font-['Inter']">กำลังโหลดข้อมูล...</div>;
