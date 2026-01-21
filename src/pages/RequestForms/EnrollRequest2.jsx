@@ -24,7 +24,7 @@ const EnrollRequest2 = () => {
     const fetchUserData = async () => {
       try {
         const studentId = localStorage.getItem('std_id') ? JSON.parse(localStorage.getItem('std_id')).user.std_id : null;
-        const response = await fetch(`http://localhost:5000/user/${studentId}`);
+        const response = await fetch(`/student/user/${studentId}`);
         if (response.ok) {
           const data = await response.json();
           setUserData(data);

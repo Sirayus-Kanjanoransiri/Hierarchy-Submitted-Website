@@ -11,7 +11,7 @@ function StudentApprovalPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('http://localhost:5000/api/students/pending'); 
+      const response = await fetch('/staff/api/students/pending'); 
       if (!response.ok) throw new Error('Failed to fetch data');
       const data = await response.json();
       setPendingStudents(data);
@@ -27,6 +27,33 @@ function StudentApprovalPage() {
     fetchPendingStudents();
   }, []);
 
+  // ฟังก์ชันสำหรับอนุมัติ
+  const handleApprove = async (student_id) => {
+    if (!window.confirm(`ยืนยันการอนุมัติบัญชีนักศึกษา ID: ${student_id} ใช่หรือไม่?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/staff/api/student/approve/${student_id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Approval failed');
+      }
+
+      // รีเฟรชรายการหลังจากอนุมัติสำเร็จ
+      alert(`อนุมัติ ID: ${student_id} เรียบร้อยแล้ว`);
+      fetchPendingStudents();
+
+    } catch (err) {
+      alert('เกิดข้อผิดพลาดในการอนุมัติ: ' + err.message);
+      console.error(err);
+    }
+  };
+  // ฟังก์ชันส่งไปหน้าจัดการ (ยังไม่อนุมัติทันทีตามที่คุณต้องการ)
   const handleGoToManage = (student) => {
     navigate('/manage-students', { state: { editStudent: student } });
   };

@@ -37,9 +37,9 @@ function StudentManagement() {
       try {
         // 1. โหลดข้อมูลพื้นฐานให้เสร็จก่อน (Students, Departments, Approvers)
         const [stuRes, deptRes, appRes] = await Promise.all([
-          axios.get("http://localhost:5000/api/students-list"),
-          axios.get("http://localhost:5000/api/departments"),
-          axios.get("http://localhost:5000/api/approvers"),
+          axios.get("/staff/api/students-list"),
+          axios.get("/admin/api/departments"),
+          axios.get("/admin/api/approvers"),
         ]);
 
         setStudents(stuRes.data);
@@ -92,12 +92,12 @@ function StudentManagement() {
     try {
       if (isEditing) {
         await axios.put(
-          `http://localhost:5000/api/students/${formData.id}`,
+          `/staff/api/students/${formData.id}`,
           formData
         );
         setMessage("แก้ไขข้อมูลเรียบร้อย");
       } else {
-        await axios.post("http://localhost:5000/api/students", formData);
+        await axios.post("/staff/api/students", formData);
         setMessage("เพิ่มข้อมูลเรียบร้อย");
       }
 
@@ -106,7 +106,7 @@ function StudentManagement() {
       setIsEditing(false);
       
       // โหลดข้อมูลรายชื่อนักศึกษาใหม่ (แบบย่อ ไม่ต้องโหลดทั้งหมดใหม่)
-      const res = await axios.get("http://localhost:5000/api/students-list");
+      const res = await axios.get("/staff/api/students-list");
       setStudents(res.data);
       
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -131,8 +131,8 @@ function StudentManagement() {
   const handleDelete = async (id) => {
     if (window.confirm("คุณต้องการลบข้อมูลนักศึกษานี้ใช่หรือไม่?")) {
       try {
-        await axios.delete(`http://localhost:5000/api/students/${id}`);
-        const res = await axios.get("http://localhost:5000/api/students-list");
+        await axios.delete(`/staff/api/students/${id}`);
+        const res = await axios.get("/staff/api/students-list");
         setStudents(res.data);
       } catch (error) {
         alert(

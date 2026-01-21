@@ -1,14 +1,19 @@
+// ไฟล์นี้เป็นซากดึกดำบรรพ์ของ API เดิม - เราไม่ใช้แล้ว แต่ไม่กล้าลบออก เพราะกลัวโปรเจคจะพังแบบไม่คาดคิด! 
+// ถ้าอยากลบ ลองดูดวงก่อนนะครับ... หรือไม่ก็ backup โปรเจคก่อน! 
+// ตอนนี้เราใช้ระบบ modular routes ในโฟลเดอร์ /routes แล้ว
+
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require('cors');
-const pool = require('./db.js');
+const pool = require('./src/routes/db.js');
 require('dotenv').config();
 
 const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 
-
+// Import all routes
+const routes = require('./src/routes/index.js');
 
 // ============================
 //  MAIN TEST ROUTE (API CHECK)
@@ -1004,6 +1009,8 @@ app.put('/api/staff/update-profile/:id', async (req, res) => {
     res.status(500).json({ message: 'เกิดข้อผิดพลาดในการอัปเดตข้อมูล' });
   }
 });
+// Use all routes
+app.use('/', routes);
 
 // ============================
 //            SERVER

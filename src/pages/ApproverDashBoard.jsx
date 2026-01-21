@@ -5,27 +5,40 @@ function ApproverDashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState(null);
   const [comment, setComment] = useState("");
+  const [apiStatus, setApiStatus] = useState(null);
 
   useEffect(() => {
     fetchSubmissions();
   }, []);
 
-  const fetchSubmissions = async () => {
+ const fetchSubmissions = async () => {
+    setLoading(true); // เริ่มโหลดใหม่ทุกครั้งที่เรียก
     try {
-      const storedUser = JSON.parse(localStorage.getItem('user'));
-      const approverId = storedUser?.id;
-      if (!approverId) return;
+        const storedUser = JSON.parse(localStorage.getItem('user'));
+        const approverId = storedUser?.id;
+        
+        if (!approverId) {
+            setApiStatus('No approver logged in');
+            return;
+        }
 
-      // Backend จะใช้ SQL logic ที่เราคุยกันเพื่อกรองเฉพาะคิวของคนนี้
-      const response = await fetch(`http://localhost:5000/api/submissions?approver_id=${approverId}`);
-      const data = await response.json();
-      setSubmissions(data);
-      setLoading(false);
+        const response = await fetch(`/approver/api/submissions?approver_id=${approverId}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        setSubmissions(data);
+        setApiStatus('OK');
     } catch (error) {
-      console.error('Fetch error:', error);
-      setLoading(false);
+        console.error('Fetch error:', error);
+        setApiStatus('Network/Server error');
+    } finally {
+        // ไม่ว่าจะสำเร็จหรือพัง ต้องเอาหน้าจอ "กำลังโหลด" ออก
+        setLoading(false); 
     }
-  };
+};
 
   const handleUpdateStatus = async (submissionId, newStatus) => {
     if (!comment && (newStatus === 'REJECTED' || newStatus === 'REVISION')) {
@@ -37,7 +50,8 @@ function ApproverDashboard() {
       const storedUser = JSON.parse(localStorage.getItem('user'));
       const approverId = storedUser?.id;
 
-      const response = await fetch(`http://localhost:5000/api/submissions/${submissionId}/status`, {
+      console.debug('ApproverDashBoard: updating status', { submissionId, newStatus, approverId });
+      const response = await fetch(`/approver/api/submissions/${submissionId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -47,6 +61,7 @@ function ApproverDashboard() {
         })
       });
 
+      console.debug('ApproverDashBoard: update status response', response.status, response.statusText);
       if (response.ok) {
         alert("ดำเนินการเรียบร้อยแล้ว");
         setSelectedItem(null);

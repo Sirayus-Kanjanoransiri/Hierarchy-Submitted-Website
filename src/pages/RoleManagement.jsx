@@ -20,7 +20,7 @@ function RoleManagement() {
 
   const fetchRoles = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/roles');
+      const response = await axios.get('/admin/api/roles');
       setRoles(response.data);
     } catch (error) {
       console.error('Error fetching roles:', error);
@@ -37,10 +37,10 @@ function RoleManagement() {
 
     try {
       if (isEditing) {
-        await axios.put(`http://localhost:5000/api/roles/${formData.id}`, formData);
+        await axios.put(`/admin/api/roles/${formData.id}`, formData);
         setMessage('แก้ไขข้อมูลเรียบร้อย');
       } else {
-        await axios.post('http://localhost:5000/api/roles', formData);
+        await axios.post('/admin/api/roles', formData);
         setMessage('เพิ่มข้อมูลเรียบร้อย');
       }
       
@@ -62,7 +62,7 @@ function RoleManagement() {
   const handleDelete = async (id) => {
     if (window.confirm('คุณต้องการลบตำแหน่งนี้ใช่หรือไม่?')) {
       try {
-        await axios.delete(`http://localhost:5000/api/roles/${id}`);
+        await axios.delete(`/admin/api/roles/${id}`);
         fetchRoles();
       } catch (error) {
         alert('ลบไม่ได้: ' + (error.response?.data?.message || 'เกิดข้อผิดพลาด'));

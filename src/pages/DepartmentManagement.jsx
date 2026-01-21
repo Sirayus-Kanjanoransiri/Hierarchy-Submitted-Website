@@ -23,7 +23,7 @@ function DepartmentManagement() {
 
   const fetchDepartments = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/departments');
+      const response = await axios.get('/admin/api/departments');
       setDepartments(response.data);
     } catch (error) {
       console.error('Error fetching departments:', error);
@@ -32,7 +32,7 @@ function DepartmentManagement() {
 
   const fetchFaculties = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/faculties');
+      const response = await axios.get('/admin/api/faculties');
       setFaculties(response.data);
     } catch (error) {
       console.error('Error fetching faculties:', error);
@@ -49,10 +49,10 @@ function DepartmentManagement() {
 
     try {
       if (isEditing) {
-        await axios.put(`http://localhost:5000/api/departments/${formData.id}`, formData);
+        await axios.put(`/admin/api/departments/${formData.id}`, formData);
         setMessage('แก้ไขข้อมูลเรียบร้อย');
       } else {
-        await axios.post('http://localhost:5000/api/departments', formData);
+        await axios.post('/admin/api/departments', formData);
         setMessage('เพิ่มข้อมูลเรียบร้อย');
       }
       
@@ -74,7 +74,7 @@ function DepartmentManagement() {
   const handleDelete = async (id) => {
     if (window.confirm('คุณต้องการลบสาขาวิชานี้ใช่หรือไม่?')) {
       try {
-        await axios.delete(`http://localhost:5000/api/departments/${id}`);
+        await axios.delete(`/admin/api/departments/${id}`);
         fetchDepartments();
       } catch (error) {
         alert('ลบไม่ได้: ' + (error.response?.data?.message || 'เกิดข้อผิดพลาด'));

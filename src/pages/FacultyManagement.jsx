@@ -20,7 +20,7 @@ function FacultyManagement() {
 
   const fetchFaculties = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/faculties');
+      const response = await axios.get('/admin/api/faculties');
       setFaculties(response.data);
     } catch (error) {
       console.error('Error fetching faculties:', error);
@@ -37,10 +37,10 @@ function FacultyManagement() {
 
     try {
       if (isEditing) {
-        await axios.put(`http://localhost:5000/api/faculties/${formData.id}`, formData);
+        await axios.put(`/admin/api/faculties/${formData.id}`, formData);
         setMessage('แก้ไขข้อมูลเรียบร้อย');
       } else {
-        await axios.post('http://localhost:5000/api/faculties', formData);
+        await axios.post('/admin/api/faculties', formData);
         setMessage('เพิ่มข้อมูลเรียบร้อย');
       }
       
@@ -62,7 +62,7 @@ function FacultyManagement() {
   const handleDelete = async (id) => {
     if (window.confirm('คุณต้องการลบข้อมูลคณะนี้ใช่หรือไม่? (หากมีสาขาวิชาสังกัดอยู่จะลบไม่ได้)')) {
       try {
-        await axios.delete(`http://localhost:5000/api/faculties/${id}`);
+        await axios.delete(`/admin/api/faculties/${id}`);
         fetchFaculties();
       } catch (error) {
         alert('ลบไม่ได้: ' + (error.response?.data?.message || 'เกิดข้อผิดพลาด'));

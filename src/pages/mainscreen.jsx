@@ -6,7 +6,7 @@ function Mainscreen() {
 
   const handleFetchSubmissions = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/submissions');
+      const res = await fetch('/approver/api/submissions');
       const data = await res.json();
       setSubmissions(data);
     } catch (err) {

@@ -29,7 +29,7 @@ function ApproverManagement() {
 
   const fetchApprovers = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/approvers');
+      const response = await axios.get('/admin/api/approvers');
       setApprovers(response.data);
     } catch (error) {
       console.error('Error fetching approvers:', error);
@@ -38,7 +38,7 @@ function ApproverManagement() {
 
   const fetchDepartments = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/departments');
+      const response = await axios.get('/admin/api/departments');
       setDepartments(response.data);
     } catch (error) {
       console.error('Error fetching departments:', error);
@@ -56,10 +56,10 @@ function ApproverManagement() {
 
     try {
       if (isEditing) {
-        await axios.put(`http://localhost:5000/api/approvers/${formData.id}`, formData);
+        await axios.put(`/admin/api/approvers/${formData.id}`, formData);
         setMessage('แก้ไขข้อมูลเรียบร้อย');
       } else {
-        await axios.post('http://localhost:5000/api/approvers', formData);
+        await axios.post('/admin/api/approvers', formData);
         setMessage('เพิ่มข้อมูลเรียบร้อย');
       }
       
@@ -88,7 +88,7 @@ function ApproverManagement() {
   const handleDelete = async (id) => {
     if (window.confirm('คุณต้องการลบข้อมูลผู้อนุมัตินี้ใช่หรือไม่?')) {
       try {
-        await axios.delete(`http://localhost:5000/api/approvers/${id}`);
+        await axios.delete(`/admin/api/approvers/${id}`);
         fetchApprovers();
       } catch (error) {
         alert('ลบไม่ได้: ' + (error.response?.data?.message || 'เกิดข้อผิดพลาด'));

@@ -24,7 +24,7 @@ function StaffManagement() {
 
   const fetchstaff = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/staff-management');
+      const response = await axios.get('/admin/api/staff-management');
       setStaffList(response.data);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -42,11 +42,11 @@ function StaffManagement() {
     try {
       if (isEditing) {
         // แก้ไข
-        await axios.put(`http://localhost:5000/api/staff-management/${formData.staff_id}`, formData);
+        await axios.put(`/admin/api/staff-management/${formData.staff_id}`, formData);
         setMessage('แก้ไขข้อมูลเรียบร้อย');
       } else {
         // เพิ่มใหม่
-        await axios.post('http://localhost:5000/api/staff-management', formData);
+        await axios.post('/admin/api/staff-management', formData);
         setMessage('เพิ่มข้อมูลเรียบร้อย');
       }
       
@@ -71,7 +71,7 @@ function StaffManagement() {
   const handleDelete = async (id) => {
     if (window.confirm('ยืนยันที่จะลบข้อมูลเจ้าหน้าที่นี้?')) {
       try {
-        await axios.delete(`http://localhost:5000/api/staff-management/${id}`);
+        await axios.delete(`/admin/api/staff-management/${id}`);
         fetchstaff();
       } catch (error) {
         alert('เกิดข้อผิดพลาดในการลบ');

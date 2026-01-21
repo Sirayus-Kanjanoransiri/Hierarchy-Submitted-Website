@@ -24,7 +24,7 @@ const AcademicRequest6 = () => {
         const studentCode = localUser.student_id;
         if (!studentCode) return;
 
-        const response = await fetch(`http://localhost:5000/user/${studentCode}`);
+        const response = await fetch(`/student/user/${studentCode}`);
         if (!response.ok) throw new Error('Failed to fetch user data');
 
         const data = await response.json();
@@ -58,20 +58,14 @@ const AcademicRequest6 = () => {
     const formData = {
       subject: subject,
       request_reason: requestReason,
-      student_info: {
-        full_name: userData.full_name,
-        student_id: userData.student_id,
-        department: std_department,
-        email: userData.email
-      }
     };
 
     try {
-      const response = await fetch('http://localhost:5000/api/submissions', {
+      const response = await fetch('/student/api/submissions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          student_id: userData.id,   // FIX 6: ใช้ PK จริงเท่านั้น
+          student_id: userData.id,   
           form_id: 1,
           form_data: formData
         }),
@@ -81,6 +75,7 @@ const AcademicRequest6 = () => {
         alert('ส่งฟอร์มและเริ่มกระบวนการอนุมัติเรียบร้อยแล้ว');
         setSubject('');
         setRequestReason('');
+        console.log('Submitting form data:', formData);
       } else {
         const errorData = await response.json().catch(() => ({ error: 'Unknown Error' }));
         alert(`เกิดข้อผิดพลาด: ${errorData.error || errorData.message}`);

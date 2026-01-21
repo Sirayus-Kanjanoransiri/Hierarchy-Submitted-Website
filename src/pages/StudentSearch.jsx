@@ -18,7 +18,7 @@ function StudentSearch() {
     setSelectedStudent(null); // ปิดการแสดงรายละเอียดของเก่า
 
     try {
-      const response = await axios.get(`http://localhost:5000/api/students/search?q=${query}`);
+      const response = await axios.get(`/staff/api/students/search?q=${query}`);
       setResults(response.data);
     } catch (error) {
       console.error('Search error:', error);

@@ -2,6 +2,7 @@
   "name": "online_request",
   "version": "0.1.0",
   "private": true,
+  "proxy": "http://localhost:5000",
   "dependencies": {
     "@tailwindcss/vite": "^4.1.17",
     "@testing-library/dom": "^10.4.0",

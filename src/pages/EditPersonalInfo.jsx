@@ -47,7 +47,7 @@ function EditPersonalInfo() {
             throw new Error("ไม่พบรหัสเจ้าหน้าที่ (Staff ID)");
         }
 
-        response = await axios.get(`http://localhost:5000/api/staff/${staffId}`);
+        response = await axios.get(`/staff/api/staff/${staffId}`);
         
         setFormData(prev => ({
             ...prev,
@@ -57,7 +57,7 @@ function EditPersonalInfo() {
       } else {
         // Student
         const studentId = currentUser.student_id;
-        response = await axios.get(`http://localhost:5000/user/${studentId}`);
+        response = await axios.get(`/student/user/${studentId}`);
         const d = response.data;
         setFormData({
             full_name: d.full_name,
@@ -89,13 +89,13 @@ function EditPersonalInfo() {
       if (role === 'staff') {
         const staffId = user.id || user.staff_id || user.staff_id;
 
-        await axios.put(`http://localhost:5000/api/staff/update-profile/${staffId}`, {
+        await axios.put(`/staff/api/staff/update-profile/${staffId}`, {
             email: formData.email,
             password: formData.password,
             full_name: formData.full_name
         });
       } else {
-        await axios.put(`http://localhost:5000/api/student/update-profile/${user.student_id}`, formData);
+        await axios.put(`/student/api/student/update-profile/${user.student_id}`, formData);
       }
 
       setMessage({ type: 'success', text: 'บันทึกข้อมูลเรียบร้อยแล้ว' });
