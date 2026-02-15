@@ -20,7 +20,7 @@ const authRoutes = require('./auth.js');
 // --- 2. เรียกใช้งาน Route ---
 app.use('/admin', adminRoutes);
 app.use('/staff', staffRoutes);
-app.use('/approver', approverRoutes);
+app.use('/approver', approverRoutes);  // Mount at root to match /api/approver/* paths
 app.use('/student', studentRoutes);
 app.use('/auth', authRoutes);
 

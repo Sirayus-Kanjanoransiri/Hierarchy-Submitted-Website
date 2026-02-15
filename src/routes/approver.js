@@ -3,69 +3,135 @@ const express = require('express');
 const router = express.Router();
 const pool = require('./db.js');
 
-// ดึงรายการคำร้องที่รอการอนุมัติ (เฉพาะลำดับที่ถึงคิวของผู้อนุมัติคนนั้น)
-router.get('/api/submissions', async (req, res) => {
-    const approverId = req.query.approver_id;
+// ดึงรายการคำร้องที่รออนุมัติ
+router.get('/api/tasks', async (req, res) => {
+  const { approver_id } = req.query;
+  if (!approver_id) return res.status(400).json({ error: 'missing approver_id' });
 
-    if (!approverId) {
-        return res.status(400).json({ error: "Missing approver_id" });
-    }
-
-    // ดึงเฉพาะคำร้องของนักเรียนที่คนคนนี้เป็นอาจารย์ที่ปรึกษา (advisor_id)
+  try {
     const sql = `
-        SELECT s.*, st.full_name AS student_name
-        FROM submissions s
-        INNER JOIN students st ON s.student_id = st.id
-        WHERE st.advisor_id = ?
+      SELECT 
+        aps.id as step_id,
+        aps.step_order, -- เพิ่มมาเพื่อให้รู้ว่าเป็นขั้นตอนลำดับที่เท่าไหร่
+        s.id as submission_id,
+        s.submitted_at,
+        s.form_id,
+        s.form_data,
+        st.full_name as student_name,
+        d.department_name,
+        r.role_name as role_at_step
+      FROM approval_steps aps
+      JOIN submissions s ON aps.submission_id = s.id
+      JOIN students st ON s.student_id = st.id
+      JOIN departments d ON st.department_id = d.id
+      LEFT JOIN roles r ON aps.role_id = r.id
+      WHERE aps.assigned_approver_id = ?
+        AND aps.status = 'PENDING'
+        -- เอาไว้เฉพาะขั้นตอนที่เป็นลำดับถัดไปที่ต้องอนุมัติ
+        AND NOT EXISTS (
+          SELECT 1 FROM approval_steps prev
+          WHERE prev.submission_id = aps.submission_id
+            AND prev.step_order < aps.step_order
+            AND prev.status != 'APPROVED' 
+        )
+      ORDER BY s.submitted_at ASC
     `;
-
-    try {
-        const [results] = await pool.query(sql, [approverId]);
-        return res.json(results);
-    } catch (err) {
-        console.error("SQL Error (approver /api/submissions):", err);
-        return res.status(500).json({ error: "Database error", details: err.message });
-    }
+    const [rows] = await pool.query(sql, [approver_id]);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-router.put('/api/submissions/:id/status', async (req, res) => {
-    const submissionId = req.params.id;
-    const { status, comment, approver_id } = req.body; // รับ approver_id มาด้วย
+//API รวมสำหรับ Approve / Reject / Revision
+router.post('/api/approver/process-action', async (req, res) => {
+  const { step_id, action, note, approver_id } = req.body;
 
-    // 1. อัปเดต Step ปัจจุบันของผู้อนุมัติคนนี้
-    const updateStepSql = `
-        UPDATE approval_steps 
-        SET status = ?, reject_reason = ?, updated_at = NOW() 
-        WHERE submission_id = ? AND assigned_approver_id = ? AND status = 'PENDING'
-    `;
+  // ตรวจสอบ Action ที่อนุญาต
+  const validActions = ['APPROVED', 'REJECTED', 'NEED_REVISION'];
+  if (!validActions.includes(action)) {
+    return res.status(400).json({ error: 'Invalid action type' });
+  }
 
-    try {
-        await pool.query(updateStepSql, [status, comment, submissionId, approver_id]);
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
 
-        if (status === 'REJECTED') {
-            // ถ้าปฏิเสธ ให้เปลี่ยนสถานะหลักของ Submission เป็น REJECTED ทันที
-            await pool.query('UPDATE submissions SET submission_status = "REJECTED" WHERE id = ?', [submissionId]);
-        } else if (status === 'APPROVED') {
-            // ตรวจสอบว่าเป็น Step สุดท้ายหรือไม่
-            const checkLastStepSql = `
-                SELECT 1 FROM approval_steps 
-                WHERE submission_id = ? AND status = 'PENDING'
-            `;
-            const [pendingSteps] = await pool.query(checkLastStepSql, [submissionId]);
-            if (pendingSteps.length === 0) {
-                // ถ้าไม่มี Step ค้างแล้ว ให้ Submission เป็น APPROVED
-                await pool.query('UPDATE submissions SET submission_status = "APPROVED" WHERE id = ?', [submissionId]);
-            } else {
-                // ถ้ายังมี Step ถัดไป ให้สถานะหลักเป็น IN_PROGRESS
-                await pool.query('UPDATE submissions SET submission_status = "IN_PROGRESS" WHERE id = ?', [submissionId]);
-            }
-        }
+    // 1. ดึงข้อมูล Step และข้อมูลการส่ง (Submission) มาตรวจสอบ
+    const [[step]] = await conn.query(
+      `SELECT submission_id, assigned_approver_id FROM approval_steps WHERE id = ? AND status = 'PENDING'`,
+      [step_id]
+    );
 
-        return res.json({ message: 'Status updated successfully' });
-    } catch (err) {
-        console.error('SQL Error (approver update status):', err);
-        return res.status(500).json({ error: 'Database error', details: err.message });
+    if (!step) {
+      throw new Error('ไม่พบรายการนี้ หรือรายการนี้ถูกดำเนินการไปแล้ว');
     }
+
+    // (Optional) ตรวจสอบว่าคนอนุมัติคือคนที่ได้รับมอบหมายจริงๆ
+    if (step.assigned_approver_id != approver_id) {
+        throw new Error('คุณไม่มีสิทธิ์ดำเนินการในขั้นตอนนี้');
+    }
+
+    // 2. อัปเดตตาราง approval_steps
+    await conn.query(
+      `UPDATE approval_steps 
+       SET status = ?, 
+           reject_reason = ?, 
+           updated_at = NOW() 
+       WHERE id = ?`,
+      [action, note || null, step_id]
+    );
+
+    // 3. บันทึกลง submission_action_logs
+    await conn.query(
+      `INSERT INTO submission_action_logs (submission_id, approver_id, action, note) 
+       VALUES (?, ?, ?, ?)`,
+      [step.submission_id, approver_id, action, note || null]
+    );
+
+    // 4. ตัดสินใจสถานะสุดท้ายของตาราง submissions
+    let finalSubmissionStatus = 'IN_PROGRESS';
+
+    if (action === 'REJECTED') {
+      finalSubmissionStatus = 'REJECTED';
+    } 
+    else if (action === 'NEED_REVISION') {
+      finalSubmissionStatus = 'NEED_REVISION';
+    } 
+    else if (action === 'APPROVED') {
+      // เช็กว่ามี Step อื่นที่ยัง 'PENDING' หรือ 'NEED_REVISION' สำหรับ submission นี้ไหม
+      const [[pending]] = await conn.query(
+        `SELECT COUNT(*) AS cnt FROM approval_steps 
+         WHERE submission_id = ? AND status NOT IN ('APPROVED', 'REJECTED')`,
+        [step.submission_id]
+      );
+
+      // ถ้าไม่มีค้างแล้ว แปลว่าผ่านครบทุกด่าน
+      if (pending.cnt === 0) {
+        finalSubmissionStatus = 'APPROVED';
+      } else {
+        finalSubmissionStatus = 'IN_PROGRESS';
+      }
+    }
+
+    // 5. อัปเดตสถานะที่ตาราง submissions
+    await conn.query(
+      `UPDATE submissions SET submission_status = ? WHERE id = ?`,
+      [finalSubmissionStatus, step.submission_id]
+    );
+
+    await conn.commit();
+    res.json({ 
+      message: `ดำเนินการ ${action} เรียบร้อยแล้ว`,
+      submission_status: finalSubmissionStatus 
+    });
+
+  } catch (err) {
+    await conn.rollback();
+    res.status(400).json({ error: err.message });
+  } finally {
+    conn.release();
+  }
 });
 
 module.exports = router;
