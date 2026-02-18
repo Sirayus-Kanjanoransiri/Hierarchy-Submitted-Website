@@ -11,7 +11,7 @@ const pool = require('./db.js');
 router.get('/api/staff-management', async (req, res) => {
   try {
     // เลือกข้อมูลจากตาราง staff
-    const [rows] = await pool.query('SELECT staffs_id, username, full_name, email, role FROM staff'); 
+    const [rows] = await pool.query('SELECT staff_id, username, full_name, email, role FROM staff'); 
     // หมายเหตุ: ไม่ดึง password_hash ส่งกลับไปเพื่อความปลอดภัย
     res.json(rows);
   } catch (error) {
@@ -24,7 +24,7 @@ router.get('/api/staff-management', async (req, res) => {
 router.post('/api/staff-management', async (req, res) => {
   const { username, password, full_name, email, role } = req.body;
 
-  // ตรวจสอบค่าว่าง (staffs_id เป็น Auto Increment ไม่ต้องรับค่า)
+  // ตรวจสอบค่าว่าง (staff_id เป็น Auto Increment ไม่ต้องรับค่า)
   if (!username || !password || !full_name || !email) {
     return res.status(400).json({ message: 'กรุณากรอกข้อมูลให้ครบถ้วน' });
   }
@@ -53,13 +53,13 @@ router.put('/api/staff-management/:id', async (req, res) => {
     // ตรวจสอบว่าจะแก้รหัสผ่านด้วยหรือไม่
     if (password && password.trim() !== "") {
         await pool.query(
-            'UPDATE staff SET username=?, password_hash=?, full_name=?, email=?, role=? WHERE staffs_id=?',
+            'UPDATE staff SET username=?, password_hash=?, full_name=?, email=?, role=? WHERE staff_id=?',
             [username, password, full_name, email, role, id]
         );
     } else {
         // กรณีไม่แก้รหัสผ่าน (ใช้รหัสเดิม)
         await pool.query(
-            'UPDATE staff SET username=?, full_name=?, email=?, role=? WHERE staffs_id=?',
+            'UPDATE staff SET username=?, full_name=?, email=?, role=? WHERE staff_id=?',
             [username, full_name, email, role, id]
         );
     }
@@ -76,7 +76,7 @@ router.delete('/api/staff-management/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
-    await pool.query('DELETE FROM staff WHERE staffs_id = ?', [id]);
+    await pool.query('DELETE FROM staff WHERE staff_id = ?', [id]);
     res.json({ message: 'ลบข้อมูลสำเร็จ' });
   } catch (error) {
     console.error('Error deleting staff:', error);
@@ -88,60 +88,92 @@ router.delete('/api/staff-management/:id', async (req, res) => {
 //   APPROVER MANAGEMENT (CRUD)
 // ============================
 
-// 1. ดึงข้อมูล Approvers ทั้งหมด (พร้อมชื่อสาขา)
+// 1. ดึงข้อมูล Approvers ทั้งหมด (พร้อมชื่อสาขา และบทบาท Role)
 router.get('/api/approvers', async (req, res) => {
   try {
     const sql = `
-      SELECT a.*, d.department_name 
+      SELECT a.*, d.department_name,
+        (SELECT GROUP_CONCAT(role_id) FROM approver_roles WHERE approver_id = a.id) as role_ids_str,
+        (SELECT GROUP_CONCAT(r.role_name SEPARATOR ', ') FROM approver_roles ar JOIN roles r ON ar.role_id = r.id WHERE ar.approver_id = a.id) as role_names
       FROM approvers a
       LEFT JOIN departments d ON a.department_id = d.id
     `;
     const [rows] = await pool.query(sql);
-    res.json(rows);
+    
+    // แปลง role_ids_str ('1,2,4') ให้กลายเป็น Array [1, 2, 4] เพื่อส่งให้ Frontend
+    const formattedRows = rows.map(row => ({
+      ...row,
+      role_ids: row.role_ids_str ? row.role_ids_str.split(',').map(Number) : []
+    }));
+    
+    res.json(formattedRows);
   } catch (error) {
     console.error('Error fetching approvers:', error);
     res.status(500).json({ message: 'เกิดข้อผิดพลาดในการดึงข้อมูลผู้อนุมัติ' });
   }
 });
 
-// 2. เพิ่ม Approver ใหม่
+// 2. เพิ่ม Approver ใหม่ (พร้อมใส่ Role)
 router.post('/api/approvers', async (req, res) => {
   const { 
     approver_prefix, full_name, username, password, 
-    email, department_id, approver_tel 
+    email, department_id, approver_tel, role_ids
   } = req.body;
 
   if (!full_name || !username || !password || !email) {
     return res.status(400).json({ message: 'กรุณากรอกข้อมูลสำคัญให้ครบถ้วน' });
   }
 
+  let conn;
   try {
-    await pool.query(
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+
+    // 1. สร้าง Approver
+    const [result] = await conn.query(
       `INSERT INTO approvers 
       (approver_prefix, full_name, username, password, email, department_id, approver_tel, is_active) 
       VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
       [approver_prefix, full_name, username, password, email, department_id || null, approver_tel]
     );
-    res.json({ message: 'เพิ่มผู้อนุมัติสำเร็จ' });
+    
+    const newApproverId = result.insertId;
+
+    // 2. ผูก Role เข้ากับตาราง approver_roles
+    if (role_ids && role_ids.length > 0) {
+      for (const roleId of role_ids) {
+        await conn.query('INSERT INTO approver_roles (approver_id, role_id) VALUES (?, ?)', [newApproverId, roleId]);
+      }
+    }
+
+    await conn.commit();
+    res.json({ message: 'เพิ่มผู้อนุมัติและกำหนดตำแหน่งสำเร็จ' });
   } catch (error) {
+    if (conn) await conn.rollback();
     console.error('Error adding approver:', error);
     if (error.code === 'ER_DUP_ENTRY') {
       return res.status(400).json({ message: 'Email นี้มีอยู่ในระบบแล้ว' });
     }
     res.status(500).json({ message: 'เกิดข้อผิดพลาดในการเพิ่มข้อมูล' });
+  } finally {
+    if (conn) conn.release();
   }
 });
 
-// 3. แก้ไขข้อมูล Approver
+// 3. แก้ไขข้อมูล Approver (และแก้ไข Role)
 router.put('/api/approvers/:id', async (req, res) => {
   const { id } = req.params;
   const { 
     approver_prefix, full_name, username, password, 
-    email, department_id, approver_tel, is_active 
+    email, department_id, approver_tel, is_active, role_ids 
   } = req.body;
 
+  let conn;
   try {
-    // เช็คว่ามีการเปลี่ยนรหัสผ่านหรือไม่
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+
+    // 1. อัปเดตข้อมูลส่วนตัว
     let sql = '';
     let params = [];
 
@@ -152,12 +184,25 @@ router.put('/api/approvers/:id', async (req, res) => {
       sql = `UPDATE approvers SET approver_prefix=?, full_name=?, username=?, email=?, department_id=?, approver_tel=?, is_active=? WHERE id=?`;
       params = [approver_prefix, full_name, username, email, department_id, approver_tel, is_active, id];
     }
+    await conn.query(sql, params);
 
-    await pool.query(sql, params);
+    // 2. ล้าง Role เก่าทิ้ง และใส่ Role ใหม่เข้าไปแทน
+    await conn.query('DELETE FROM approver_roles WHERE approver_id = ?', [id]);
+    
+    if (role_ids && role_ids.length > 0) {
+      for (const roleId of role_ids) {
+        await conn.query('INSERT INTO approver_roles (approver_id, role_id) VALUES (?, ?)', [id, roleId]);
+      }
+    }
+
+    await conn.commit();
     res.json({ message: 'แก้ไขข้อมูลสำเร็จ' });
   } catch (error) {
+    if (conn) await conn.rollback();
     console.error('Error updating approver:', error);
     res.status(500).json({ message: 'เกิดข้อผิดพลาดในการแก้ไขข้อมูล' });
+  } finally {
+    if (conn) conn.release();
   }
 });
 
@@ -165,11 +210,12 @@ router.put('/api/approvers/:id', async (req, res) => {
 router.delete('/api/approvers/:id', async (req, res) => {
   const { id } = req.params;
   try {
+    // ลบความสัมพันธ์ใน Role ก่อนกันบั๊ก
+    await pool.query('DELETE FROM approver_roles WHERE approver_id = ?', [id]);
     await pool.query('DELETE FROM approvers WHERE id = ?', [id]);
     res.json({ message: 'ลบข้อมูลสำเร็จ' });
   } catch (error) {
     console.error('Error deleting approver:', error);
-    // กรณีติด Foreign Key (เช่น เป็นที่ปรึกษาของนักศึกษาอยู่) อาจลบไม่ได้
     if (error.code === 'ER_ROW_IS_REFERENCED_2') {
         return res.status(400).json({ message: 'ไม่สามารถลบได้ เนื่องจากบัญชีนี้ถูกใช้งานในระบบ (เช่น เป็นที่ปรึกษา)' });
     }

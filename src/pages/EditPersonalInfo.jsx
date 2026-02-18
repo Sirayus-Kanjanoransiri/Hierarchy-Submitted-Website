@@ -7,14 +7,12 @@ function EditPersonalInfo() {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState('');
   
-  // Form State
+  // เพิ่ม State ของ Approver เข้ามาด้วย
   const [formData, setFormData] = useState({
-    full_name: '',
-    email: '',
-    password: '', // ว่างไว้ถ้าไม่เปลี่ยน
-    // Address fields (Student only)
+    full_name: '', email: '', password: '',
     address_no: '', address_moo: '', address_soi: '', address_street: '',
-    address_subdistrict: '', address_district: '', address_province: '', address_postcode: ''
+    address_subdistrict: '', address_district: '', address_province: '', address_postcode: '',
+    approver_prefix: '', approver_tel: '' // ของอาจารย์
   });
 
   const [loading, setLoading] = useState(true);
@@ -25,49 +23,54 @@ function EditPersonalInfo() {
     if (storedUser) {
       const parsedUser = JSON.parse(storedUser);
       setUser(parsedUser);
-      // ตรวจสอบ Role
-      setRole(parsedUser.role || (parsedUser.staff_id ? 'staff' : 'student'));
       
-      fetchCurrentData(parsedUser);
+      // คัดกรอง Role ให้ฉลาดขึ้น
+      let currentRole = parsedUser.role;
+      if (!currentRole) {
+          if (parsedUser.student_id) currentRole = 'student';
+          else if (parsedUser.staff_id || parsedUser.staffs_id) currentRole = 'staff';
+          else currentRole = 'approver'; // ถ้าไม่มีรหัสนักศึกษา/เจ้าหน้าที่ ให้ถือว่าเป็น Approver
+      }
+      setRole(currentRole);
+      
+      fetchCurrentData(parsedUser, currentRole);
     } else {
       navigate('/'); 
     }
   }, [navigate]);
 
-  const fetchCurrentData = async (currentUser) => {
+  const fetchCurrentData = async (currentUser, currentRole) => {
     try {
-      let response;
-      const userRole = currentUser.role || (currentUser.staff_id ? 'staff' : 'student');
-
-      if (userRole === 'staff') {
-        // Staff
-        const staffId = currentUser.id || currentUser.staff_id || currentUser.staff_id;
-        
-        if (!staffId) {
-            throw new Error("ไม่พบรหัสเจ้าหน้าที่ (Staff ID)");
-        }
-
-        response = await axios.get(`/staff/api/staff/${staffId}`);
-        
+      if (currentRole === 'staff') {
+        const staffId = currentUser.id || currentUser.staff_id || currentUser.staffs_id;
+        const response = await axios.get(`/staff/api/staff/${staffId}`);
+        setFormData(prev => ({ ...prev, full_name: response.data.full_name, email: response.data.email || '' }));
+      
+      } else if (currentRole === 'approver') {
+        // ส่วนของ Approver ที่เพื่อนคุณลืมทำ!
+        const approverId = currentUser.id;
+        const response = await axios.get(`/approver/api/profile/${approverId}`);
+        const d = response.data;
         setFormData(prev => ({
             ...prev,
-            full_name: response.data.full_name,
-            email: response.data.email || ''
-        }));
-      } else {
-        // Student
-        const studentId = currentUser.student_id;
-        response = await axios.get(`/student/user/${studentId}`);
-        const d = response.data;
-        setFormData({
-            full_name: d.full_name,
+            approver_prefix: d.approver_prefix || '',
+            full_name: d.full_name || '',
             email: d.email || '',
-            password: '',
+            approver_tel: d.approver_tel || ''
+        }));
+
+      } else {
+        const studentId = currentUser.student_id;
+        const response = await axios.get(`/student/user/${studentId}`);
+        const d = response.data;
+        setFormData(prev => ({
+            ...prev,
+            full_name: d.full_name || '', email: d.email || '',
             address_no: d.address_no || '', address_moo: d.address_moo || '',
             address_soi: d.address_soi || '', address_street: d.address_street || '',
             address_subdistrict: d.address_subdistrict || '', address_district: d.address_district || '',
             address_province: d.address_province || '', address_postcode: d.address_postcode || ''
-        });
+        }));
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -87,12 +90,17 @@ function EditPersonalInfo() {
 
     try {
       if (role === 'staff') {
-        const staffId = user.id || user.staff_id || user.staff_id;
-
+        const staffId = user.id || user.staff_id || user.staffs_id;
         await axios.put(`/staff/api/staff/update-profile/${staffId}`, {
+            email: formData.email, password: formData.password, full_name: formData.full_name
+        });
+      } else if (role === 'approver') {
+        await axios.put(`/approver/api/profile/${user.id}`, {
+            approver_prefix: formData.approver_prefix,
+            full_name: formData.full_name,
             email: formData.email,
-            password: formData.password,
-            full_name: formData.full_name
+            approver_tel: formData.approver_tel,
+            password: formData.password
         });
       } else {
         await axios.put(`/student/api/student/update-profile/${user.student_id}`, formData);
@@ -106,7 +114,7 @@ function EditPersonalInfo() {
     }
   };
 
-  if (loading) return <div className="p-10 text-center font-['Inter']">กำลังโหลดข้อมูล...</div>;
+  if (loading) return <div className="text-center mt-20 text-indigo-600 font-bold">กำลังโหลดข้อมูล...</div>;
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 font-['Inter']">
@@ -114,7 +122,6 @@ function EditPersonalInfo() {
         <h1 className="text-3xl font-bold text-gray-900 mb-8 text-center">แก้ไขข้อมูลส่วนตัว</h1>
         
         <div className="bg-white rounded-xl shadow-md p-8 border-t-4 border-blue-500">
-          
           {message.text && (
             <div className={`p-4 mb-6 rounded-md ${message.type === 'error' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
               {message.text}
@@ -123,79 +130,54 @@ function EditPersonalInfo() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             
-            {/* --- ข้อมูลบัญชี --- */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="md:col-span-2">
+                
+                {/* ถ้าเป็น Approver ให้โชว์คำนำหน้า */}
+                {role === 'approver' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">คำนำหน้า</label>
+                    <input type="text" name="approver_prefix" value={formData.approver_prefix} onChange={handleChange} className="w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500" />
+                  </div>
+                )}
+
+                <div className={role === 'approver' ? '' : 'md:col-span-2'}>
                     <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล</label>
-                    <input 
-                        type="text" name="full_name" 
-                        value={formData.full_name} onChange={handleChange}
-                        readOnly={role === 'student'} 
-                        className={`w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 ${role==='student' ? 'bg-gray-100 text-gray-500':''}`}
-                    />
-                    {role === 'student' && <p className="text-xs text-gray-400 mt-1">*นักศึกษาไม่สามารถเปลี่ยนชื่อเองได้ หากต้องการเปลี่ยนโปรดติดต่อฝ่ายทะเบียน</p>}
+                    <input type="text" name="full_name" value={formData.full_name} onChange={handleChange} readOnly={role === 'student'} className={`w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 ${role==='student' ? 'bg-gray-100 text-gray-500':''}`} />
+                    {role === 'student' && <p className="text-xs text-gray-400 mt-1">*นักศึกษาไม่สามารถเปลี่ยนชื่อเองได้</p>}
                 </div>
 
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">อีเมล (Email)</label>
-                    <input 
-                        type="email" name="email" 
-                        value={formData.email} onChange={handleChange} required
-                        className="w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500" 
-                    />
+                    <input type="email" name="email" value={formData.email} onChange={handleChange} required className="w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500" />
                 </div>
 
-                <div>
+                {role === 'approver' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">เบอร์โทรศัพท์</label>
+                    <input type="text" name="approver_tel" value={formData.approver_tel} onChange={handleChange} className="w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500" />
+                  </div>
+                )}
+
+                <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">รหัสผ่านใหม่ (ว่างไว้ถ้าไม่เปลี่ยน)</label>
-                    <input 
-                        type="password" name="password" 
-                        value={formData.password} onChange={handleChange} 
-                        placeholder="********"
-                        className="w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500" 
-                    />
+                    <input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="********" className="w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500" />
                 </div>
             </div>
 
-            {/* --- ส่วนที่อยู่ (ปรับปรุงใหม่ เพิ่ม Label) --- */}
+            {/* ส่วนที่อยู่ของนักศึกษา */}
             {role === 'student' && (
                 <>
                     <hr className="border-gray-200 my-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-4">ข้อมูลที่อยู่</h3>
-                    
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">บ้านเลขที่</label>
-                            <input type="text" name="address_no" value={formData.address_no} onChange={handleChange} className="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500" />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">หมู่ที่</label>
-                            <input type="text" name="address_moo" value={formData.address_moo} onChange={handleChange} className="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500" />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">ซอย</label>
-                            <input type="text" name="address_soi" value={formData.address_soi} onChange={handleChange} className="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500" />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">ถนน</label>
-                            <input type="text" name="address_street" value={formData.address_street} onChange={handleChange} className="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500" />
-                        </div>
-                        
-                        <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">แขวง/ตำบล</label>
-                            <input type="text" name="address_subdistrict" value={formData.address_subdistrict} onChange={handleChange} className="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500" />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">เขต/อำเภอ</label>
-                            <input type="text" name="address_district" value={formData.address_district} onChange={handleChange} className="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500" />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">จังหวัด</label>
-                            <input type="text" name="address_province" value={formData.address_province} onChange={handleChange} className="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500" />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">รหัสไปรษณีย์</label>
-                            <input type="text" name="address_postcode" value={formData.address_postcode} onChange={handleChange} className="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500" />
-                        </div>
+                        <div><label className="block text-xs font-medium text-gray-700 mb-1">บ้านเลขที่</label><input type="text" name="address_no" value={formData.address_no} onChange={handleChange} className="w-full p-2 border rounded focus:ring-blue-500" /></div>
+                        <div><label className="block text-xs font-medium text-gray-700 mb-1">หมู่ที่</label><input type="text" name="address_moo" value={formData.address_moo} onChange={handleChange} className="w-full p-2 border rounded focus:ring-blue-500" /></div>
+                        <div><label className="block text-xs font-medium text-gray-700 mb-1">ซอย</label><input type="text" name="address_soi" value={formData.address_soi} onChange={handleChange} className="w-full p-2 border rounded focus:ring-blue-500" /></div>
+                        <div><label className="block text-xs font-medium text-gray-700 mb-1">ถนน</label><input type="text" name="address_street" value={formData.address_street} onChange={handleChange} className="w-full p-2 border rounded focus:ring-blue-500" /></div>
+                        <div><label className="block text-xs font-medium text-gray-700 mb-1">แขวง/ตำบล</label><input type="text" name="address_subdistrict" value={formData.address_subdistrict} onChange={handleChange} className="w-full p-2 border rounded focus:ring-blue-500" /></div>
+                        <div><label className="block text-xs font-medium text-gray-700 mb-1">เขต/อำเภอ</label><input type="text" name="address_district" value={formData.address_district} onChange={handleChange} className="w-full p-2 border rounded focus:ring-blue-500" /></div>
+                        <div><label className="block text-xs font-medium text-gray-700 mb-1">จังหวัด</label><input type="text" name="address_province" value={formData.address_province} onChange={handleChange} className="w-full p-2 border rounded focus:ring-blue-500" /></div>
+                        <div><label className="block text-xs font-medium text-gray-700 mb-1">รหัสไปรษณีย์</label><input type="text" name="address_postcode" value={formData.address_postcode} onChange={handleChange} className="w-full p-2 border rounded focus:ring-blue-500" /></div>
                     </div>
                 </>
             )}
@@ -204,11 +186,7 @@ function EditPersonalInfo() {
                 <button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors shadow-sm">
                     บันทึกการเปลี่ยนแปลง
                 </button>
-                <button 
-                    type="button" 
-                    onClick={() => navigate(-1)}
-                    className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-medium transition-colors"
-                >
+                <button type="button" onClick={() => navigate(-1)} className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 font-medium transition-colors">
                     ยกเลิก
                 </button>
             </div>

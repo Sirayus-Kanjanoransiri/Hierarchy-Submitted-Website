@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 function ApproverManagement() {
   const [approvers, setApprovers] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [rolesList, setRolesList] = useState([]); // เก็บรายชื่อ Role ทั้งหมด
   
   const [formData, setFormData] = useState({
     id: '',
@@ -15,16 +16,17 @@ function ApproverManagement() {
     email: '',
     department_id: '',
     approver_tel: '',
-    is_active: 1
+    is_active: 1,
+    role_ids: [] // เพิ่มฟิลด์สำหรับเก็บ Array ของ Role
   });
   
   const [isEditing, setIsEditing] = useState(false);
   const [message, setMessage] = useState('');
 
-  // โหลดข้อมูลเมื่อเข้าหน้าเว็บ
   useEffect(() => {
     fetchApprovers();
     fetchDepartments();
+    fetchRoles();
   }, []);
 
   const fetchApprovers = async () => {
@@ -45,9 +47,28 @@ function ApproverManagement() {
     }
   };
 
+  const fetchRoles = async () => {
+    try {
+      const response = await axios.get('/admin/api/roles');
+      setRolesList(response.data);
+    } catch (error) {
+      console.error('Error fetching roles:', error);
+    }
+  };
+
   const handleChange = (e) => {
     const value = e.target.type === 'checkbox' ? (e.target.checked ? 1 : 0) : e.target.value;
     setFormData({ ...formData, [e.target.name]: value });
+  };
+
+  // ฟังก์ชันสำหรับจัดการ Checkbox ของ Role
+  const handleRoleChange = (roleId) => {
+    setFormData((prev) => {
+      const newRoles = prev.role_ids.includes(roleId)
+        ? prev.role_ids.filter((id) => id !== roleId) // ถ้ามีอยู่แล้วให้เอาออก
+        : [...prev.role_ids, roleId]; // ถ้ายังไม่มีให้เพิ่มเข้าไป
+      return { ...prev, role_ids: newRoles };
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -63,12 +84,7 @@ function ApproverManagement() {
         setMessage('เพิ่มข้อมูลเรียบร้อย');
       }
       
-      // Reset Form
-      setFormData({ 
-        id: '', approver_prefix: '', full_name: '', username: '', 
-        password: '', email: '', department_id: '', approver_tel: '', is_active: 1 
-      });
-      setIsEditing(false);
+      handleCancel(); // เคลียร์ฟอร์ม
       fetchApprovers();
     } catch (error) {
       setMessage('เกิดข้อผิดพลาด: ' + (error.response?.data?.message || error.message));
@@ -78,8 +94,9 @@ function ApproverManagement() {
   const handleEdit = (item) => {
     setFormData({
         ...item,
-        password: '', // Clear password field
-        department_id: item.department_id || '' // Handle null department
+        password: '', 
+        department_id: item.department_id || '', 
+        role_ids: item.role_ids || [] // ดึง Role เก่ามาโชว์ใน Checkbox
     });
     setIsEditing(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -99,7 +116,7 @@ function ApproverManagement() {
   const handleCancel = () => {
     setFormData({ 
       id: '', approver_prefix: '', full_name: '', username: '', 
-      password: '', email: '', department_id: '', approver_tel: '', is_active: 1 
+      password: '', email: '', department_id: '', approver_tel: '', is_active: 1, role_ids: [] 
     });
     setIsEditing(false);
     setMessage('');
@@ -128,80 +145,50 @@ function ApproverManagement() {
           )}
 
           <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {/* คำนำหน้า */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">คำนำหน้า (Prefix)</label>
-              <input type="text" name="approver_prefix" value={formData.approver_prefix} onChange={handleChange}
-                className="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" placeholder="ดร., ผศ." />
-            </div>
-
-            {/* ชื่อ-นามสกุล */}
+            {/* ... ช่องกรอกเดิม ... */}
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">คำนำหน้า</label><input type="text" name="approver_prefix" value={formData.approver_prefix} onChange={handleChange} className="w-full p-2 border rounded-md" /></div>
+            <div className="lg:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล</label><input type="text" name="full_name" value={formData.full_name} onChange={handleChange} required className="w-full p-2 border rounded-md" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Username</label><input type="text" name="username" value={formData.username} onChange={handleChange} required className="w-full p-2 border rounded-md" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">{isEditing ? 'รหัสผ่านใหม่ (ว่างไว้ถ้าไม่แก้)' : 'รหัสผ่าน'}</label><input type="text" name="password" value={formData.password} onChange={handleChange} required={!isEditing} className="w-full p-2 border rounded-md" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Email</label><input type="email" name="email" value={formData.email} onChange={handleChange} required className="w-full p-2 border rounded-md" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">เบอร์โทรศัพท์</label><input type="text" name="approver_tel" value={formData.approver_tel} onChange={handleChange} className="w-full p-2 border rounded-md" /></div>
             <div className="lg:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล (Full Name)</label>
-              <input type="text" name="full_name" value={formData.full_name} onChange={handleChange} required
-                className="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" />
-            </div>
-
-            {/* Username */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
-              <input type="text" name="username" value={formData.username} onChange={handleChange} required
-                className="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" />
-            </div>
-
-            {/* Password */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {isEditing ? 'รหัสผ่านใหม่ (ว่างไว้ถ้าไม่แก้)' : 'รหัสผ่าน (Password)'}
-              </label>
-              <input type="text" name="password" value={formData.password} onChange={handleChange} required={!isEditing}
-                className="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" />
-            </div>
-
-            {/* Email */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-              <input type="email" name="email" value={formData.email} onChange={handleChange} required
-                className="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" />
-            </div>
-
-            {/* เบอร์โทร */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">เบอร์โทรศัพท์</label>
-              <input type="text" name="approver_tel" value={formData.approver_tel} onChange={handleChange}
-                className="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500" />
-            </div>
-
-            {/* สาขาวิชา (Dropdown) */}
-            <div className="lg:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">สังกัดสาขาวิชา (Department)</label>
-              <select name="department_id" value={formData.department_id} onChange={handleChange}
-                className="w-full p-2 border rounded-md focus:ring-teal-500 focus:border-teal-500 bg-white">
+              <label className="block text-sm font-medium text-gray-700 mb-1">สังกัดสาขาวิชา</label>
+              <select name="department_id" value={formData.department_id} onChange={handleChange} className="w-full p-2 border rounded-md bg-white">
                 <option value="">-- ไม่ระบุ / ส่วนกลาง --</option>
-                {departments.map(dept => (
-                  <option key={dept.id} value={dept.id}>{dept.department_name}</option>
-                ))}
+                {departments.map(dept => (<option key={dept.id} value={dept.id}>{dept.department_name}</option>))}
               </select>
             </div>
 
-            {/* สถานะ Active */}
+            {/* ส่วนที่เพิ่มใหม่: จัดการ Roles (ตำแหน่งหน้าที่) */}
+            <div className="lg:col-span-3">
+              <label className="block text-sm font-medium text-gray-700 mb-2">ตำแหน่ง / หน้าที่รับผิดชอบ (Roles)</label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 border border-teal-200 p-4 rounded-md bg-teal-50">
+                {rolesList.map(role => (
+                  <label key={role.id} className="flex items-center space-x-2 cursor-pointer bg-white p-2 rounded shadow-sm hover:bg-teal-100 transition">
+                    <input 
+                      type="checkbox"
+                      checked={formData.role_ids.includes(role.id)}
+                      onChange={() => handleRoleChange(role.id)}
+                      className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
+                    />
+                    <span className="text-sm text-gray-800">{role.role_name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
             <div className="flex items-center mt-6">
-               <input type="checkbox" name="is_active" checked={formData.is_active === 1} 
-                onChange={() => setFormData({...formData, is_active: formData.is_active === 1 ? 0 : 1})}
-                className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded" />
+               <input type="checkbox" name="is_active" checked={formData.is_active === 1} onChange={() => setFormData({...formData, is_active: formData.is_active === 1 ? 0 : 1})} className="h-4 w-4 text-teal-600 border-gray-300 rounded" />
                <label className="ml-2 block text-sm text-gray-900">เปิดใช้งานบัญชี (Active)</label>
             </div>
             
-            {/* Buttons */}
             <div className="md:col-span-2 lg:col-span-3 flex gap-3 mt-4">
-              <button type="submit" className={`flex-1 py-2 px-4 rounded-md text-white font-medium transition-colors ${
-                  isEditing ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-teal-600 hover:bg-teal-700'}`}>
+              <button type="submit" className={`flex-1 py-2 px-4 rounded-md text-white font-medium transition-colors ${isEditing ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-teal-600 hover:bg-teal-700'}`}>
                 {isEditing ? 'บันทึกการแก้ไข' : 'เพิ่มข้อมูล'}
               </button>
               {isEditing && (
-                <button type="button" onClick={handleCancel} className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
-                  ยกเลิก
-                </button>
+                <button type="button" onClick={handleCancel} className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">ยกเลิก</button>
               )}
             </div>
           </form>
@@ -212,11 +199,11 @@ function ApproverManagement() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-100">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ชื่อ-นามสกุล</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">สังกัดสาขา</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">สถานะ</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">จัดการ</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ชื่อ-นามสกุล</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">สังกัดสาขา</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-teal-600 uppercase">ตำแหน่ง (Roles)</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">สถานะ</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">จัดการ</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -227,14 +214,15 @@ function ApproverManagement() {
                       {item.approver_prefix} {item.full_name}
                       <div className="text-xs text-gray-500">{item.email}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.username}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {item.department_name || '-'}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.department_name || '-'}</td>
+                    
+                    {/* คอลัมน์สำหรับแสดงรายชื่อ Role ที่มี */}
+                    <td className="px-6 py-4 text-sm text-gray-700 font-semibold max-w-xs truncate">
+                      {item.role_names ? item.role_names : <span className="text-red-400 font-normal">ยังไม่ได้ระบุตำแหน่ง</span>}
                     </td>
+
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        item.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}>
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${item.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                         {item.is_active ? 'Active' : 'Inactive'}
                       </span>
                     </td>
@@ -245,9 +233,7 @@ function ApproverManagement() {
                   </tr>
                 ))
               ) : (
-                <tr>
-                  <td colSpan="5" className="px-6 py-4 text-center text-sm text-gray-500">ไม่พบข้อมูลผู้อนุมัติ</td>
-                </tr>
+                <tr><td colSpan="5" className="px-6 py-4 text-center text-sm text-gray-500">ไม่พบข้อมูลผู้อนุมัติ</td></tr>
               )}
             </tbody>
           </table>

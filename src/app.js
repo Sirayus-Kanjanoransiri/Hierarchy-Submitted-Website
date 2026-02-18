@@ -20,6 +20,7 @@ import StudentManagement from './pages/StudentManagement';
 import StudentSearch from './pages/StudentSearch';
 import Mainscreen from './pages/mainscreen';
 import ApproverDashboard from './pages/ApproverDashBoard';
+import OverloadRegistrationForm from './pages/RequestForms/OverloadRegistrationForm';
 
 function App() {
   const [user, setUser] = useState(() => {
@@ -68,6 +69,7 @@ function App() {
         <Route path="/forms/academic-request-6" element={<AcademicRequest6 />} />
         <Route path="/forms/enroll-request-1" element={<EnrollRequest1 />} />
         <Route path="/forms/enroll-request-2" element={<EnrollRequest2 />} />
+        <Route path='/forms/overload-registration-form' element={<OverloadRegistrationForm />} />
       </Routes>
     </>
   );

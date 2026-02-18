@@ -134,4 +134,37 @@ router.post('/api/approver/process-action', async (req, res) => {
   }
 });
 
+//ส่วนแก้ไข้ข้อมูลส่วนตัว Approver
+// ดึงข้อมูลส่วนตัว Approver
+router.get('/api/profile/:id', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT id, approver_prefix, full_name, email, approver_tel FROM approvers WHERE id = ?', [req.params.id]);
+    if (rows.length > 0) res.json(rows[0]);
+    else res.status(404).json({ message: 'ไม่พบข้อมูล' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching profile' });
+  }
+});
+
+// อัปเดตข้อมูลส่วนตัว Approver
+router.put('/api/profile/:id', async (req, res) => {
+  const { approver_prefix, full_name, email, approver_tel, password } = req.body;
+  try {
+    if (password && password.trim() !== '') {
+      await pool.query(
+        'UPDATE approvers SET approver_prefix=?, full_name=?, email=?, approver_tel=?, password=? WHERE id=?',
+        [approver_prefix, full_name, email, approver_tel, password, req.params.id]
+      );
+    } else {
+      await pool.query(
+        'UPDATE approvers SET approver_prefix=?, full_name=?, email=?, approver_tel=? WHERE id=?',
+        [approver_prefix, full_name, email, approver_tel, req.params.id]
+      );
+    }
+    res.json({ message: 'อัปเดตข้อมูลสำเร็จ' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating profile' });
+  }
+});
+
 module.exports = router;
