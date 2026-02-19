@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 const AcademicRequest6 = () => {
   const [userData, setUserData] = useState(null);
   const [subject, setSubject] = useState('');
   const [requestReason, setRequestReason] = useState('');
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [submissionId, setSubmissionId] = useState(null);
+  const [loadingSubmission, setLoadingSubmission] = useState(false);
+  const [searchParams] = useSearchParams();
 
   // =========================
   // FIX 1: ป้องกัน department ว่าง
@@ -13,6 +18,13 @@ const AcademicRequest6 = () => {
     : 'ข้อมูลไม่สมบูรณ์ / No Major Data';
 
   useEffect(() => {
+    const idFromQuery = searchParams.get('submissionId');
+    if (idFromQuery) {
+      setIsEditMode(true);
+      setSubmissionId(idFromQuery);
+      fetchExistingSubmission(idFromQuery);
+    }
+
     const fetchUserData = async () => {
       try {
         const localUserRaw = localStorage.getItem('user');
@@ -41,7 +53,29 @@ const AcademicRequest6 = () => {
     };
 
     fetchUserData();
-  }, []);
+  }, [searchParams]);
+
+  const fetchExistingSubmission = async (id) => {
+    setLoadingSubmission(true);
+    try {
+      const res = await fetch(`/student/api/student/submission/${id}`);
+      if (!res.ok) throw new Error();
+
+      const submission = await res.json();
+      const data = typeof submission.form_data === 'string'
+        ? JSON.parse(submission.form_data)
+        : submission.form_data;
+
+      setSubject(data.subject || '');
+      setRequestReason(data.request_reason || '');
+    } catch {
+      // ถ้าโหลดไม่ได้ ให้กลับเป็นโหมดสร้างใหม่
+      setIsEditMode(false);
+      setSubmissionId(null);
+    } finally {
+      setLoadingSubmission(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -61,18 +95,30 @@ const AcademicRequest6 = () => {
     };
 
     try {
-      const response = await fetch('/student/api/submissions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          student_id: userData.id,   
-          form_id: 1,
-          form_data: formData
-        }),
-      });
+      let response;
+
+      if (isEditMode && submissionId) {
+        // แก้ไขคำร้องเดิม
+        response = await fetch(`/student/api/student/revise-submission/${submissionId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ form_data: formData }),
+        });
+      } else {
+        // ส่งคำร้องใหม่
+        response = await fetch('/student/api/submissions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            student_id: userData.id,
+            form_id: 1,
+            form_data: formData,
+          }),
+        });
+      }
 
       if (response.ok) {
-        alert('ส่งฟอร์มและเริ่มกระบวนการอนุมัติเรียบร้อยแล้ว');
+        alert(isEditMode ? 'ส่งคำร้องฉบับแก้ไขเรียบร้อยแล้ว' : 'ส่งฟอร์มและเริ่มกระบวนการอนุมัติเรียบร้อยแล้ว');
         setSubject('');
         setRequestReason('');
         console.log('Submitting form data:', formData);
@@ -111,7 +157,7 @@ const AcademicRequest6 = () => {
           <label className="block text-sm font-bold text-gray-700">เรียน/To</label>
           <input
             type="text"
-            value={"คณบดีคณะสาขา " + std_department}
+            value={"คณบดี"}
             disabled
             className="mt-1 block w-full border-gray-300 rounded-md shadow-md bg-gray-100 text-gray-500 p-2"
           />

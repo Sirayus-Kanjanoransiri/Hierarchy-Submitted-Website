@@ -22,8 +22,6 @@ const EnrollRequest1 = () => {
     const fetchUserData = async () => {
       try {
         const studentId = localStorage.getItem('std_id') ? JSON.parse(localStorage.getItem('std_id')).user.std_id : null;
-        // NOTE: The fetch URL is 'http://localhost:5000/user/${studentId}'
-        // In a production environment, this should be a relative path or an absolute path to a real API endpoint.
         const response = await fetch(`/student/user/${studentId}`);
         if (response.ok) {
           const data = await response.json();

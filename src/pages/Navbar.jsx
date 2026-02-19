@@ -83,11 +83,18 @@ function Navbar({ user, onLogout }) {
             )}
 
             {currentUser?.role === 'student' && (
-              <li>
-                <Link to="/forms" className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                  ส่งแบบคำร้อง
-                </Link>
-              </li>
+              <>
+                <li>
+                  <Link to="/forms" className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                    ส่งแบบคำร้อง
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/submission-progress" className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                    ติดตามสถานะคำร้อง
+                  </Link>
+                </li>
+              </>
             )}
             
             {/* อาจารย์ (Approver) อาจจะมีเมนูเฉพาะ เช่น ประวัติการอนุมัติ */}
