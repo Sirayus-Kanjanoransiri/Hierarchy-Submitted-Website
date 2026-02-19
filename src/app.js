@@ -21,6 +21,7 @@ import StudentSearch from './pages/StudentSearch';
 import Mainscreen from './pages/mainscreen';
 import ApproverDashboard from './pages/ApproverDashBoard';
 import OverloadRegistrationForm from './pages/RequestForms/OverloadRegistrationForm';
+import SubmissionProgressPage from './pages/SubmissionProgressPage';
 
 function App() {
   const [user, setUser] = useState(() => {
@@ -44,6 +45,7 @@ function App() {
         <Route path="/" element={<Index setUser={setUser} />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/mainscreen" element={<Mainscreen />} />
+        <Route path="/submission-progress" element={<SubmissionProgressPage />} />
         
         {/* Route สำหรับนักศึกษา */}
         <Route path="/forms" element={<AllFormPages />} />        

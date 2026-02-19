@@ -12,7 +12,7 @@ router.get('/api/tasks', async (req, res) => {
     const sql = `
       SELECT 
         aps.id as step_id,
-        aps.step_order, -- เพิ่มมาเพื่อให้รู้ว่าเป็นขั้นตอนลำดับที่เท่าไหร่
+        aps.step_order, 
         s.id as submission_id,
         s.submitted_at,
         s.form_id,
