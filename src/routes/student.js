@@ -85,18 +85,90 @@ router.get('/user/:student_id', async (req, res) => {
 });
 
 // ============================
-//   SENDING SUBMISSION FORM DATA
+//   SENDING SUBMISSION FORM DATA 
 // ============================
 router.post('/api/submissions', async (req, res) => {
-  const { student_id, form_id, subject, to, form_data } = req.body;
+  const { student_id, form_id, form_data } = req.body;
+  let conn;
 
   try {
-    const [rows] = await pool.query('INSERT INTO submissions (student_id, form_id, form_data, submission_status) VALUES (?, ?, ?, "PENDING")', 
-      [student_id, form_id, JSON.stringify(form_data)]);
-    res.json({ message: 'บันทึกข้อมูลสําเร็จ' });
+    // ต้องใช้ Transaction เพราะถ้าพังกลางคิว จะได้ยกเลิกทั้งหมดได้
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+
+    // 1. ดึงกฎการเดินเอกสาร (Workflow) จากตาราง form_workflows ให้ถูกต้อง
+    const [flows] = await conn.query(`
+      SELECT step_order, role_id
+      FROM form_workflows
+      WHERE form_id = ?
+      ORDER BY step_order ASC
+    `, [form_id]);
+
+    if (flows.length === 0) {
+      throw new Error('ไม่พบเส้นทางการอนุมัติ (Workflow) สำหรับฟอร์มชนิดนี้');
+    }
+
+    // 2. ดึงข้อมูลว่าใครคืออาจารย์ที่ปรึกษาของนักศึกษาคนนี้
+    const [[student]] = await conn.query(`
+      SELECT advisor_id FROM students WHERE id = ?
+    `, [student_id]);
+
+    if (!student) {
+      throw new Error('ไม่พบข้อมูลนักศึกษาในระบบ');
+    }
+
+    // 3. บันทึกใบคำร้องลงในตารางหลัก submissions
+    const [subResult] = await conn.query(`
+      INSERT INTO submissions (student_id, form_id, form_data, submission_status) 
+      VALUES (?, ?, ?, 'PENDING')
+    `, [student_id, form_id, JSON.stringify(form_data)]);
+
+    const submissionId = subResult.insertId; // เก็บ ID ที่เพิ่งสร้างใหม่ไว้ใช้ต่อ
+
+    // 4. วนลูปสร้างด่านอนุมัติลงใน approval_steps ทันที
+    for (const flow of flows) {
+      let assignedApproverId = null;
+
+      if (flow.role_id === 1) {
+        // ด่านที่ 1 (อ.ที่ปรึกษา) - บังคับส่งให้ที่ปรึกษาตัวเอง
+        if (!student.advisor_id) {
+          throw new Error('นักศึกษาคนนี้ยังไม่ได้ระบุอาจารย์ที่ปรึกษา');
+        }
+        assignedApproverId = student.advisor_id;
+      } else {
+        // ด่านอื่นๆ ค้นหาอาจารย์/เจ้าหน้าที่ ที่ถือ Role นั้นๆ อยู่
+        const [approvers] = await conn.query(`
+          SELECT a.id 
+          FROM approvers a
+          JOIN approver_roles ar ON a.id = ar.approver_id
+          WHERE ar.role_id = ? AND a.is_active = 1
+          LIMIT 1
+        `, [flow.role_id]);
+
+        if (approvers.length === 0) {
+          throw new Error(`ระบบไม่พบผู้อนุมัติที่รับผิดชอบตำแหน่ง Role ID: ${flow.role_id}`);
+        }
+        assignedApproverId = approvers[0].id;
+      }
+
+      // บันทึกลำดับขั้นนั้นลง Database
+      await conn.query(`
+        INSERT INTO approval_steps (submission_id, step_order, role_id, assigned_approver_id, status)
+        VALUES (?, ?, ?, ?, 'PENDING')
+      `, [submissionId, flow.step_order, flow.role_id, assignedApproverId]);
+    }
+
+    await conn.commit();
+    res.json({ message: 'ส่งคำร้องและแจกจ่ายเอกสารให้ผู้อนุมัติเรียบร้อยแล้ว' });
+
   } catch (error) {
-    console.error('pool Error:', error);
-    res.status(500).json({ message: 'เกิดข้อผิดพลาดในระบบ' });
+    // ถ้าพังกลางทาง ให้ย้อนกลับ (Rollback) ข้อมูลทั้งหมด จะได้ไม่เกิดขยะใน Database
+    if (conn) await conn.rollback();
+    console.error('Submission Error:', error);
+    res.status(500).json({ error: error.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล' });
+  } finally {
+    // อย่าลืมคืน connection ให้ระบบ
+    if (conn) conn.release();
   }
 });
 
