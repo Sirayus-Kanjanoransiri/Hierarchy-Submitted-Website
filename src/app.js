@@ -24,6 +24,8 @@ import OverloadRegistrationForm from './pages/RequestForms/OverloadRegistrationF
 import SubmissionProgressPage from './pages/SubmissionProgressPage';
 import LateRegistrationForm from './pages/RequestForms/LateRegistrationForm';
 import StudentPaymentDashboard from './pages/StudentPaymentDashboard';
+import CourseCancellationForm from './pages/RequestForms/CourseCancellationForm';
+import ConfirmRegistrationForm from './pages/RequestForms/ConfirmRegistrationForm';
 
 function App() {
   const [user, setUser] = useState(() => {
@@ -76,6 +78,8 @@ function App() {
         <Route path="/forms/enroll-request-2" element={<EnrollRequest2 />} />
         <Route path='/forms/overload-registration-form' element={<OverloadRegistrationForm />} />
         <Route path='/forms/late-registration-form' element={<LateRegistrationForm />} />
+        <Route path="/forms/course-cancellation-form" element={<CourseCancellationForm />} />
+        <Route path="/forms/confirm-registration-form" element={<ConfirmRegistrationForm />} />
       </Routes>
     </>
   );

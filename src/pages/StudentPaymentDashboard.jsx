@@ -158,7 +158,7 @@ function StudentPaymentDashboard() {
             <div className="col-span-1 md:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-16 text-center">
               <div className="text-6xl mb-4 text-gray-300">🎉</div>
               <h3 className="text-xl font-bold text-gray-700">ไม่มีคำร้องที่ต้องชำระเงิน</h3>
-              <p className="text-gray-500 mt-2 text-sm">ยอดเยี่ยมมากค่ะ คุณไม่มีรายการค้างชำระในระบบขณะนี้</p>
+              <p className="text-gray-500 mt-2 text-sm">ยอดเยี่ยมมาก คุณไม่มีรายการค้างชำระในระบบขณะนี้</p>
             </div>
           )}
         </div>

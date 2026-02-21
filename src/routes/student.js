@@ -294,4 +294,51 @@ router.post('/api/payments/upload-slip', upload.single('receipt'), async (req, r
   }
 });
 
+// ============================
+//   ติดตามสถานะคำร้อง (SUBMISSION PROGRESS)
+// ============================
+
+// 1. ดึงรายการคำร้องทั้งหมดของนักศึกษาคนนี้
+router.get('/api/student/submissions', async (req, res) => {
+  const { student_id } = req.query;
+  if (!student_id) return res.status(400).json({ error: 'Missing student_id' });
+
+  try {
+    const [rows] = await pool.query(`
+      SELECT id, form_id, form_data, submission_status, submitted_at
+      FROM submissions
+      WHERE student_id = ?
+      ORDER BY submitted_at DESC
+    `, [student_id]);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching submissions:', error);
+    res.status(500).json({ error: 'Failed to fetch submissions' });
+  }
+});
+
+// 2. ดึงรายละเอียดลำดับการอนุมัติ (Workflow Steps) ของคำร้องนั้นๆ
+router.get('/api/student/submission-steps', async (req, res) => {
+  const { submission_id } = req.query;
+  if (!submission_id) return res.status(400).json({ error: 'Missing submission_id' });
+
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        aps.id, aps.step_order, aps.status, aps.reject_reason,
+        r.role_name,
+        a.full_name AS approver_name
+      FROM approval_steps aps
+      JOIN roles r ON aps.role_id = r.id
+      LEFT JOIN approvers a ON aps.assigned_approver_id = a.id
+      WHERE aps.submission_id = ?
+      ORDER BY aps.step_order ASC
+    `, [submission_id]);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching steps:', error);
+    res.status(500).json({ error: 'Failed to fetch steps' });
+  }
+});
+
 module.exports = router;

@@ -19,7 +19,7 @@ function AllFormPages() {
       console.log('Dropdown item clicked - path is a placeholder.');
       return;
     }
-navigate(path);
+    navigate(path);
   };
 
   const toggleDropdown = (dropdownName) => {
@@ -151,8 +151,8 @@ navigate(path);
               <DropdownItem path="/forms/enroll-request-6">ใบคำร้องขอถอนรายวิชาโดยได้รับอักษร W</DropdownItem>
               <DropdownItem path="/forms/enroll-request-7">ใบคำร้องขอเพิ่ม – ถอนรายวิชาล่าช้า</DropdownItem>
               <DropdownItem path="/forms/late-registration-form">ใบคำร้องขอลงทะเบียนเรียนล่าช้า</DropdownItem>
-              <DropdownItem path="/forms/enroll-request-9">ใบคำร้องขอขอยกเลิกการลงทะเบียนเรียน</DropdownItem>
-              <DropdownItem path="/forms/enroll-request-10">ใบคำร้องขอยืนยันการลงทะเบียนเรียน</DropdownItem>
+              <DropdownItem path="/forms/course-cancellation-form">ใบคำร้องขอยกเลิกการลงทะเบียนเรียน</DropdownItem>
+              <DropdownItem path="/forms/confirm-registration-form">ใบคำร้องขอยืนยันการลงทะเบียนเรียน</DropdownItem>
             </DropdownSection>
 
             {/* 3. ใบคำร้องสำหรับนักศึกษาเทียบโอน (Dropdown 3) */}
