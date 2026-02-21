@@ -22,6 +22,8 @@ import Mainscreen from './pages/mainscreen';
 import ApproverDashboard from './pages/ApproverDashBoard';
 import OverloadRegistrationForm from './pages/RequestForms/OverloadRegistrationForm';
 import SubmissionProgressPage from './pages/SubmissionProgressPage';
+import LateRegistrationForm from './pages/RequestForms/LateRegistrationForm';
+import StudentPaymentDashboard from './pages/StudentPaymentDashboard';
 
 function App() {
   const [user, setUser] = useState(() => {
@@ -46,6 +48,7 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/mainscreen" element={<Mainscreen />} />
         <Route path="/submission-progress" element={<SubmissionProgressPage />} />
+        <Route path="/student/payment" element={<StudentPaymentDashboard />} />
         
         {/* Route สำหรับนักศึกษา */}
         <Route path="/forms" element={<AllFormPages />} />        
@@ -72,6 +75,7 @@ function App() {
         <Route path="/forms/enroll-request-1" element={<EnrollRequest1 />} />
         <Route path="/forms/enroll-request-2" element={<EnrollRequest2 />} />
         <Route path='/forms/overload-registration-form' element={<OverloadRegistrationForm />} />
+        <Route path='/forms/late-registration-form' element={<LateRegistrationForm />} />
       </Routes>
     </>
   );

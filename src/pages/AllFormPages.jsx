@@ -150,7 +150,7 @@ navigate(path);
               <DropdownItem path="/forms/enroll-request-5">ใบคำร้องขอเปลี่ยนกลุ่มเรียน</DropdownItem>
               <DropdownItem path="/forms/enroll-request-6">ใบคำร้องขอถอนรายวิชาโดยได้รับอักษร W</DropdownItem>
               <DropdownItem path="/forms/enroll-request-7">ใบคำร้องขอเพิ่ม – ถอนรายวิชาล่าช้า</DropdownItem>
-              <DropdownItem path="/forms/enroll-request-8">ใบคำร้องขอลงทะเบียนเรียนล่าช้า</DropdownItem>
+              <DropdownItem path="/forms/late-registration-form">ใบคำร้องขอลงทะเบียนเรียนล่าช้า</DropdownItem>
               <DropdownItem path="/forms/enroll-request-9">ใบคำร้องขอขอยกเลิกการลงทะเบียนเรียน</DropdownItem>
               <DropdownItem path="/forms/enroll-request-10">ใบคำร้องขอยืนยันการลงทะเบียนเรียน</DropdownItem>
             </DropdownSection>
