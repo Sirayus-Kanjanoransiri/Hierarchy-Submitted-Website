@@ -168,6 +168,9 @@ router.put('/api/approvers/:id', async (req, res) => {
     email, department_id, approver_tel, is_active, role_ids 
   } = req.body;
 
+  //ถ้าหน้าเว็บส่งค่าว่าง (ส่วนกลาง) มา ให้แปลงเป็น null ทันที!
+  const validDeptId = (department_id === "" || department_id === undefined) ? null : department_id;
+
   let conn;
   try {
     conn = await pool.getConnection();
@@ -179,10 +182,10 @@ router.put('/api/approvers/:id', async (req, res) => {
 
     if (password && password.trim() !== "") {
       sql = `UPDATE approvers SET approver_prefix=?, full_name=?, username=?, password=?, email=?, department_id=?, approver_tel=?, is_active=? WHERE id=?`;
-      params = [approver_prefix, full_name, username, password, email, department_id, approver_tel, is_active, id];
+      params = [approver_prefix, full_name, username, password, email, validDeptId, approver_tel, is_active, id];
     } else {
       sql = `UPDATE approvers SET approver_prefix=?, full_name=?, username=?, email=?, department_id=?, approver_tel=?, is_active=? WHERE id=?`;
-      params = [approver_prefix, full_name, username, email, department_id, approver_tel, is_active, id];
+      params = [approver_prefix, full_name, username, email, validDeptId, approver_tel, is_active, id];
     }
     await conn.query(sql, params);
 

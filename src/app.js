@@ -9,7 +9,6 @@ import AcademicRequest6 from './pages/RequestForms/AcademicRequest6';
 import EditPersonalInfo from './pages/EditPersonalInfo';
 import StaffDashboard from './pages/StaffDashboard';
 import EnrollRequest1 from './pages/RequestForms/EnrollRequest1';
-import EnrollRequest2 from './pages/RequestForms/EnrollRequest2';
 import StudentApprovalPage from './pages/StudentApprovalPage';
 import StaffManagement from './pages/StaffManagement';
 import ApproverManagement from './pages/ApproverManagement';
@@ -22,6 +21,11 @@ import Mainscreen from './pages/mainscreen';
 import ApproverDashboard from './pages/ApproverDashBoard';
 import OverloadRegistrationForm from './pages/RequestForms/OverloadRegistrationForm';
 import SubmissionProgressPage from './pages/SubmissionProgressPage';
+import LateRegistrationForm from './pages/RequestForms/LateRegistrationForm';
+import StudentPaymentDashboard from './pages/StudentPaymentDashboard';
+import CourseCancellationForm from './pages/RequestForms/CourseCancellationForm';
+import ConfirmRegistrationForm from './pages/RequestForms/ConfirmRegistrationForm';
+import UnderloadRegistrationForm from './pages/RequestForms/UnderloadRegistrationForm';
 
 function App() {
   const [user, setUser] = useState(() => {
@@ -46,6 +50,7 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/mainscreen" element={<Mainscreen />} />
         <Route path="/submission-progress" element={<SubmissionProgressPage />} />
+        <Route path="/student/payment" element={<StudentPaymentDashboard />} />
         
         {/* Route สำหรับนักศึกษา */}
         <Route path="/forms" element={<AllFormPages />} />        
@@ -70,8 +75,11 @@ function App() {
         {/* Forms */}
         <Route path="/forms/academic-request-6" element={<AcademicRequest6 />} />
         <Route path="/forms/enroll-request-1" element={<EnrollRequest1 />} />
-        <Route path="/forms/enroll-request-2" element={<EnrollRequest2 />} />
+        <Route path="/forms/underload-registration-form" element={<UnderloadRegistrationForm />} />
         <Route path='/forms/overload-registration-form' element={<OverloadRegistrationForm />} />
+        <Route path='/forms/late-registration-form' element={<LateRegistrationForm />} />
+        <Route path="/forms/course-cancellation-form" element={<CourseCancellationForm />} />
+        <Route path="/forms/confirm-registration-form" element={<ConfirmRegistrationForm />} />
       </Routes>
     </>
   );

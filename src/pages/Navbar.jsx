@@ -94,6 +94,12 @@ function Navbar({ user, onLogout }) {
                     ติดตามสถานะคำร้อง
                   </Link>
                 </li>
+                <li>
+                  {/* ปรับแก้ให้เมนูรายการชำระเงิน หน้าตาเหมือนเมนูอื่นๆ เป๊ะๆ */}
+                  <Link to="/student/payment" className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                    รายการชำระเงิน
+                  </Link>
+                </li>
               </>
             )}
             
