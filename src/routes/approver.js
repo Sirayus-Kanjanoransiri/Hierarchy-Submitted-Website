@@ -10,38 +10,42 @@ router.get('/api/tasks', async (req, res) => {
 
   try {
     const sql = `
-      SELECT 
-        aps.id as step_id,
-        aps.step_order, 
-        s.id as submission_id,
-        s.student_id, /* ดึง student_id มาด้วยเพื่อใช้ออกบิล */
-        s.submitted_at,
-        s.form_id,
-        s.form_data,
-        st.full_name as student_name,
-        d.department_name,
-        r.role_name as role_at_step,
-        /* ข้อมูลจากการเงิน */
-        p.id as payment_id,
-        p.amount_due,
-        p.payment_status,
-        p.receipt_image_path
-      FROM approval_steps aps
-      JOIN submissions s ON aps.submission_id = s.id
-      JOIN students st ON s.student_id = st.id
-      JOIN departments d ON st.department_id = d.id
-      LEFT JOIN roles r ON aps.role_id = r.id
-      /* เชื่อมตารางจ่ายเงิน เพื่อเช็คว่ามีบิลหรือสลิปส่งมาหรือยัง */
-      LEFT JOIN student_payments p ON p.submission_id = s.id 
-      WHERE aps.assigned_approver_id = ?
-        AND aps.status = 'PENDING'
-        AND NOT EXISTS (
-          SELECT 1 FROM approval_steps prev
-          WHERE prev.submission_id = aps.submission_id
-            AND prev.step_order < aps.step_order
-            AND prev.status != 'APPROVED' 
-        )
-      ORDER BY s.submitted_at ASC
+            SELECT 
+                aps.id as step_id,
+                aps.step_order, 
+                s.id as submission_id,
+                s.student_id,
+                s.submitted_at,
+                s.form_id,
+                s.form_data,
+                /* ดึงข้อมูลชื่อจาก Database โดยตรง */
+                f.name as form_name,        -- ชื่อฟอร์มจากตาราง forms
+                c.name as category_name,    -- ชื่อประเภทจากตาราง categories
+                st.full_name as student_name,
+                d.department_name,
+                r.role_name as role_at_step,
+                p.id as payment_id,
+                p.amount_due,
+                p.payment_status,
+                p.receipt_image_path
+            FROM approval_steps aps
+            JOIN submissions s ON aps.submission_id = s.id
+            JOIN students st ON s.student_id = st.id
+            JOIN departments d ON st.department_id = d.id
+            /* เชื่อมตารางเพิ่มเพื่อเอาชื่อฟอร์มและประเภท */
+            JOIN forms f ON s.form_id = f.id
+            JOIN categories c ON f.category_id = c.id
+            LEFT JOIN roles r ON aps.role_id = r.id
+            LEFT JOIN student_payments p ON p.submission_id = s.id 
+            WHERE aps.assigned_approver_id = ?
+              AND aps.status = 'PENDING'
+              AND NOT EXISTS (
+                SELECT 1 FROM approval_steps prev
+                WHERE prev.submission_id = aps.submission_id
+                  AND prev.step_order < aps.step_order
+                  AND prev.status != 'APPROVED' 
+              )
+            ORDER BY s.submitted_at ASC;
     `;
     const [rows] = await pool.query(sql, [approver_id]);
     res.json(rows);
@@ -112,7 +116,7 @@ router.post('/api/approver/process-action', async (req, res) => {
 });
 
 // ========================================================
-// ภาคเสริมพิเศษ: ระบบการเงินสำหรับเจ้าหน้าที่ (ออกบิล & ตรวจสลิป)
+// ส่วนของระบบการเงินสำหรับเจ้าหน้าที่ (ออกบิล & ตรวจสลิป)
 // ========================================================
 
 // 3. API สำหรับ "ออกบิลเรียกเก็บเงิน" (Automated Billing)

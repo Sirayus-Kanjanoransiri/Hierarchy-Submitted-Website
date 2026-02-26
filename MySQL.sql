@@ -40,7 +40,7 @@ CREATE TABLE `approval_steps` (
   CONSTRAINT `approval_steps_ibfk_1` FOREIGN KEY (`submission_id`) REFERENCES `submissions` (`id`),
   CONSTRAINT `approval_steps_ibfk_2` FOREIGN KEY (`assigned_approver_id`) REFERENCES `approvers` (`id`),
   CONSTRAINT `fk_steps_role` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=100 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=117 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -49,7 +49,7 @@ CREATE TABLE `approval_steps` (
 
 LOCK TABLES `approval_steps` WRITE;
 /*!40000 ALTER TABLE `approval_steps` DISABLE KEYS */;
-INSERT INTO `approval_steps` VALUES (49,11,1,1,'อ.ที่ปรึกษา',NULL,'NEED_REVISION','2026-02-19 11:30:08','ทดลองระบบแก้ไช',1),(50,11,2,1,'หัวหน้าสาขา',NULL,'PENDING',NULL,NULL,2),(51,11,3,16,'เจ้าหน้าที่สารบรรณ',NULL,'PENDING',NULL,NULL,11),(52,11,4,17,'รองคณบดี',NULL,'PENDING',NULL,NULL,3),(85,20,1,1,'อ.ที่ปรึกษา',NULL,'PENDING',NULL,NULL,1),(86,20,2,16,'เจ้าหน้าที่สารบรรณ',NULL,'PENDING',NULL,NULL,11),(87,20,3,1,'หัวหน้าสาขา',NULL,'PENDING',NULL,NULL,2),(88,20,4,16,'เจ้าหน้าที่สารบรรณ',NULL,'PENDING',NULL,NULL,11),(89,20,5,18,'คณบดี',NULL,'PENDING',NULL,NULL,4),(90,20,6,20,'หัวหน้างานทะเบียน',NULL,'PENDING',NULL,NULL,6),(91,20,7,19,'เจ้าหน้าที่งานทะเบียน',NULL,'PENDING',NULL,NULL,5),(92,21,1,1,'อ.ที่ปรึกษา',NULL,'APPROVED','2026-02-19 11:36:36',NULL,1),(93,21,2,1,'หัวหน้าสาขา',NULL,'REJECTED','2026-02-19 11:36:50','แกล้งให้งงเล่นๆ',2),(94,21,3,16,'เจ้าหน้าที่สารบรรณ',NULL,'PENDING',NULL,NULL,11),(95,21,4,3,'รองคณบดี',NULL,'PENDING',NULL,NULL,3),(96,22,1,1,'อ.ที่ปรึกษา',NULL,'APPROVED','2026-02-19 11:38:39',NULL,1),(97,22,2,1,'หัวหน้าสาขา',NULL,'APPROVED','2026-02-19 11:38:43',NULL,2),(98,22,3,16,'เจ้าหน้าที่สารบรรณ',NULL,'REJECTED','2026-02-19 11:41:08','ไม่บอกอย่าหลอกถาม',11),(99,22,4,3,'รองคณบดี',NULL,'PENDING',NULL,NULL,3);
+INSERT INTO `approval_steps` VALUES (116,29,1,15,NULL,NULL,'PENDING',NULL,NULL,10);
 /*!40000 ALTER TABLE `approval_steps` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -78,7 +78,7 @@ CREATE TABLE `approver_roles` (
 
 LOCK TABLES `approver_roles` WRITE;
 /*!40000 ALTER TABLE `approver_roles` DISABLE KEYS */;
-INSERT INTO `approver_roles` VALUES (1,1,1),(2,1,2),(3,2,1),(4,3,3),(5,4,1),(6,5,1),(7,6,1),(8,7,1),(9,15,1),(10,16,11),(11,17,3),(12,18,4),(13,19,5),(14,20,6);
+INSERT INTO `approver_roles` VALUES (1,1,1),(2,1,2),(3,2,1),(4,3,3),(5,4,1),(6,5,1),(7,6,1),(8,7,1),(9,15,10),(10,16,11),(11,17,3),(12,18,4),(13,19,5),(14,20,6);
 /*!40000 ALTER TABLE `approver_roles` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -113,7 +113,7 @@ CREATE TABLE `approvers` (
 
 LOCK TABLES `approvers` WRITE;
 /*!40000 ALTER TABLE `approvers` DISABLE KEYS */;
-INSERT INTO `approvers` VALUES (1,'ผศ.ดร','ต้องใจ แย้มผกา','tongjai','123456','tongjai@example.com',11,'0812345678',NULL,1),(2,'อ.','รัฐ บุรีรัตน์','rat','123456','rat@example.com',11,'0812345679',NULL,1),(3,'อ.','สุธีรา วงศ์อนันทรัพย์','sutira','123456','sutira@example.com',11,'0812345680',NULL,1),(4,'ผศ.','อรวรรณ ชุณหปราณ','orawan','123456','orawan@example.com',11,'0812345681',NULL,1),(5,'ผศ.','ดวงใจ หนูเล็ก','duangjai','123456','duangjai@example.com',11,'0812345682',NULL,1),(6,'อ.','ปรินดา ลาภเจริญวงศ์','parinda','123456','parinda@example.com',11,'0812345683',NULL,1),(7,'ผศ.ดร.','พิชัย จอดพิมาย','pichai','123456','pichai@example.com',11,'0812345684',NULL,1),(15,'อาจารย์','พิสิทธิ์ชัย จิราธนศัดดิ์','Phisitchai@rmutto.ac.th','123456','Phisitchai@rmutto.ac.th',11,'',NULL,1),(16,'นาย','กรรเชียง ท่าไม้','kancheng','123456','Kancheng@rmutto.ac.th',1,'0842384562',NULL,1),(17,'ดร.','ก้อง ร.คณบดี','kong','kong','kong@rmutto.ac.th',NULL,'0975423877',NULL,1),(18,'ดร','กรรไชย คณบดี','kanchai','kan','Kanchai@rmutto.ac.th',NULL,'0964583258',NULL,1),(19,'นาย','กรรศร หน.งานทะเบียน','kansorn','kan','Kansorn@rmutto.ac.th',NULL,'0874539677',NULL,1),(20,'นาง','กัลยา จทน.งานทะเบียน','kallaya','kall','Kallaya@rmutto.ac.th',NULL,'0953587862',NULL,1);
+INSERT INTO `approvers` VALUES (1,'ผศ.ดร','ต้องใจ แย้มผกา','tongjai','123456','tongjai@example.com',11,'0812345678',NULL,1),(2,'อ.','รัฐ บุรีรัตน์','rat','123456','rat@example.com',11,'0812345679',NULL,1),(3,'อ.','สุธีรา วงศ์อนันทรัพย์','sutira','123456','sutira@example.com',11,'0812345680',NULL,1),(4,'ผศ.','อรวรรณ ชุณหปราณ','orawan','123456','orawan@example.com',11,'0812345681',NULL,1),(5,'ผศ.','ดวงใจ หนูเล็ก','duangjai','123456','duangjai@example.com',11,'0812345682',NULL,1),(6,'อ.','ปรินดา ลาภเจริญวงศ์','parinda','123456','parinda@example.com',11,'0812345683',NULL,1),(7,'ผศ.ดร.','พิชัย จอดพิมาย','pichai','123456','pichai@example.com',11,'0812345684',NULL,1),(15,'อาจารย์','พิสิทธิ์ชัย จิราธนศัดดิ์','Q','123456','Phisitchai@rmutto.ac.th',11,'0923856784',NULL,1),(16,'นาย','กรรเชียง ท่าไม้','kancheng','123456','Kancheng@rmutto.ac.th',1,'0842384562',NULL,1),(17,'ดร.','ก้อง ร.คณบดี','kong','kong','kong@rmutto.ac.th',NULL,'0975423877',NULL,1),(18,'ดร','กรรไชย คณบดี','kanchai','kan','Kanchai@rmutto.ac.th',NULL,'0964583258',NULL,1),(19,'นาย','กรรศร หน.งานทะเบียน','kansorn','kan','Kansorn@rmutto.ac.th',NULL,'0874539677',NULL,1),(20,'นาง','กัลยา จทน.งานทะเบียน','kallaya','kall','Kallaya@rmutto.ac.th',NULL,'0953587862',NULL,1);
 /*!40000 ALTER TABLE `approvers` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -212,7 +212,7 @@ CREATE TABLE `form_workflows` (
   PRIMARY KEY (`id`),
   KEY `fk_flow_role` (`role_id`),
   CONSTRAINT `fk_flow_role` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=37 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='ตารางนี้ใช้กำหนดลำดับขั้นตอน (Workflow Pipeline) ของการอนุมัติคำร้องในระบบ โดยอ้างอิงตามประเภทคำร้อง (form_id) ซึ่งจะเรียงลำดับการตรวจสอบจากน้อยไปมากตามคอลัมน์ step_order เพื่อระบุว่าในแต่ละลำดับชั้น ผู้ที่มีสิทธิ์จัดการตามตำแหน่งหรือบทบาท (role_id) ใดจะต้องเป็นผู้พิจารณาคำร้องนั้นก่อนจะส่งต่อไปยังขั้นตอนถัดไป จนกว่าจะครบถ้วนตามลำดับที่กำหนดไว้ จึงจะถือว่ากระบวนการอนุมัติสิ้นสุดสมบูรณ์';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -221,7 +221,7 @@ CREATE TABLE `form_workflows` (
 
 LOCK TABLES `form_workflows` WRITE;
 /*!40000 ALTER TABLE `form_workflows` DISABLE KEYS */;
-INSERT INTO `form_workflows` VALUES (1,1,1,1),(2,1,2,2),(3,1,3,11),(4,1,4,3),(5,2,1,1),(6,2,2,11),(7,2,3,2),(8,2,4,11),(9,2,5,4),(10,2,6,6),(11,2,7,5);
+INSERT INTO `form_workflows` VALUES (1,1,1,1),(2,1,2,2),(3,1,3,11),(4,1,4,3),(5,2,1,1),(6,2,2,11),(7,2,3,2),(8,2,4,11),(9,2,5,4),(10,2,6,6),(11,2,7,5),(12,3,1,1),(13,3,2,3),(14,3,3,4),(15,3,4,9),(16,3,5,6),(17,3,6,5),(18,4,1,1),(19,4,2,3),(20,4,3,4),(21,4,4,9),(22,4,5,6),(23,4,6,5),(24,5,1,1),(25,5,2,3),(26,5,3,4),(27,5,4,9),(28,5,5,6),(29,5,6,5),(30,6,1,1),(31,6,2,3),(32,6,3,4),(33,6,4,7),(34,6,5,6),(35,6,6,5),(36,7,1,10);
 /*!40000 ALTER TABLE `form_workflows` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -243,7 +243,7 @@ CREATE TABLE `forms` (
   PRIMARY KEY (`id`),
   KEY `idx_forms_category_id` (`category_id`),
   CONSTRAINT `fk_forms_category` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -252,7 +252,7 @@ CREATE TABLE `forms` (
 
 LOCK TABLES `forms` WRITE;
 /*!40000 ALTER TABLE `forms` DISABLE KEYS */;
-INSERT INTO `forms` VALUES (1,1,'คำร้องทั่วไป','ใบคำร้องทั่วไป',1,'2026-02-18 20:51:16','2026-02-18 20:51:16'),(2,2,'เรียนเกินหน่วยกิต','ใบคำร้องขอลงทะเบียนเรียนเกินกว่าหน่วยกิตที่กำหนด',1,'2026-02-18 20:51:16','2026-02-18 20:51:16');
+INSERT INTO `forms` VALUES (1,1,'คำร้องทั่วไป','ใบคำร้องทั่วไป',1,'2026-02-18 20:51:16','2026-02-18 20:51:16'),(2,2,'เรียนเกินหน่วยกิต','ใบคำร้องขอลงทะเบียนเรียนเกินกว่าหน่วยกิตที่กำหนด',1,'2026-02-18 20:51:16','2026-02-18 20:51:16'),(3,2,'ลงทะเบียนเรียนล่าช้า','ใบคำร้องขอลงทะเบียนเรียนล่าช้า',1,'2026-02-23 12:19:34','2026-02-23 12:19:34'),(4,2,'ขอยกเลิกการลงทะเบียนเรียน','ใบคำร้องขอยกเลิกการลงทะเบียนเรียน',1,'2026-02-23 12:19:34','2026-02-23 12:19:34'),(5,2,'ขอยืนยันการลงทะเบียนเรียน','ใบคำร้องขอยืนยันการลงทะเบียนเรียน',1,'2026-02-23 12:19:34','2026-02-23 12:19:34'),(6,2,'ขอลงทะเบียนเรียนต่ำกว่าหน่วยกิตที่กำหนด','ใบคำร้องขอลงทะเบียนเรียนต่ำกว่าหน่วยกิตที่กำหนด',1,'2026-02-23 12:19:34','2026-02-23 12:19:34'),(7,2,'แบบคำขอเปลี่ยนกลุ่มเรียน','แบบคำขอเปลี่ยนกลุ่มเรียน',1,'2026-02-24 14:06:41','2026-02-24 14:06:41');
 /*!40000 ALTER TABLE `forms` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -347,15 +347,19 @@ DROP TABLE IF EXISTS `student_payments`;
 CREATE TABLE `student_payments` (
   `id` int NOT NULL AUTO_INCREMENT,
   `student_id` int NOT NULL,
+  `submission_id` int DEFAULT NULL COMMENT 'เชื่อมกับตารางใบคำร้อง',
   `description` varchar(255) NOT NULL,
   `amount_due` decimal(10,2) NOT NULL,
   `amount_paid` decimal(10,2) DEFAULT '0.00',
   `due_date` date DEFAULT NULL,
+  `receipt_image_path` varchar(255) DEFAULT NULL COMMENT 'ที่อยู่ไฟล์สลิปโอนเงิน',
   `payment_status` enum('UNPAID','PARTIAL','PAID') GENERATED ALWAYS AS ((case when (`amount_paid` = 0) then _utf8mb4'UNPAID' when (`amount_paid` < `amount_due`) then _utf8mb4'PARTIAL' else _utf8mb4'PAID' end)) STORED,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `fk_payment_student` (`student_id`),
-  CONSTRAINT `fk_payment_student` FOREIGN KEY (`student_id`) REFERENCES `students` (`id`) ON DELETE CASCADE
+  KEY `fk_payment_submission` (`submission_id`),
+  CONSTRAINT `fk_payment_student` FOREIGN KEY (`student_id`) REFERENCES `students` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_payment_submission` FOREIGN KEY (`submission_id`) REFERENCES `submissions` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -381,6 +385,7 @@ CREATE TABLE `students` (
   `full_name` varchar(255) NOT NULL,
   `password` varchar(50) DEFAULT NULL,
   `department_id` int NOT NULL,
+  `program_of_study` int DEFAULT NULL,
   `advisor_id` int DEFAULT NULL,
   `email` varchar(255) DEFAULT NULL,
   `address_no` varchar(50) DEFAULT NULL,
@@ -396,6 +401,8 @@ CREATE TABLE `students` (
   UNIQUE KEY `student_id` (`student_id`),
   KEY `department_id` (`department_id`),
   KEY `fk_students_advisor` (`advisor_id`),
+  KEY `fk_program_study` (`program_of_study`),
+  CONSTRAINT `fk_program_study` FOREIGN KEY (`program_of_study`) REFERENCES `program_of_study` (`id`) ON DELETE SET NULL,
   CONSTRAINT `fk_students_advisor` FOREIGN KEY (`advisor_id`) REFERENCES `approvers` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT `students_ibfk_1` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -407,7 +414,7 @@ CREATE TABLE `students` (
 
 LOCK TABLES `students` WRITE;
 /*!40000 ALTER TABLE `students` DISABLE KEYS */;
-INSERT INTO `students` VALUES (1,'STU001','สมชาย ใจดี','123456',5,1,'somchai.Jaidee@example.com','12','5','ซอยสุขใจ','ถนนรามคำแหง','หัวหมาก','บางกะปิ','กรุงเทพฯ','10240','1'),(2,'STU002','สมหญิง แสนสวย','123456',3,3,'somying@example.com','34','2','ซอยร่มเย็น','ถนนลาดพร้าว','จันทรเกษม','จตุจักร','กรุงเทพฯ','10900','1'),(3,'STU003','จันทร์เพ็ญ กลิ่นหอม','123456',2,2,'janpen@example.com','56','7','ซอยสวนพลู','ถนนสาทร','ทุ่งมหาเมฆ','สาทร','กรุงเทพฯ','10120','1'),(4,'STU004','ณัฐพล สุขใจ','123456',8,6,'natpol@example.com',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'1'),(5,'STU005','กมลรัตน์ แสงทอง','123456',5,4,'kamonrat@example.com','90','1','ซอยทองหล่อ','ถนนสุขุมวิท','คลองตันเหนือ','วัฒนา','กรุงเทพฯ','10110','0'),(7,'STU011','ทดสอบ ระบบ','123456',11,1,'test.sys@rmutto.ac.th','1','2','3','4','5','6','7','8','1'),(8,'STU012','อิค คิว_1','123456',7,1,'eiq@rmutto.ac.th','1','2','3','4','5','6','7','8','1'),(9,'026740461006-0','สิรายุส กาญจนโอฬารศิริ','123456',11,1,'sirayus.jok@gmail.com',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'1');
+INSERT INTO `students` VALUES (1,'STU001','สมชาย ใจดี','123456',5,1,1,'somchai.Jaidee@example.com','12','5','ซอยสุขใจ','ถนนรามคำแหง','หัวหมาก','บางกะปิ','กรุงเทพฯ','10240','1'),(2,'STU002','สมหญิง แสนสวย','123456',3,1,3,'somying@example.com','34','2','ซอยร่มเย็น','ถนนลาดพร้าว','จันทรเกษม','จตุจักร','กรุงเทพฯ','10900','1'),(3,'STU003','จันทร์เพ็ญ กลิ่นหอม','123456',2,1,2,'janpen@example.com','56','7','ซอยสวนพลู','ถนนสาทร','ทุ่งมหาเมฆ','สาทร','กรุงเทพฯ','10120','1'),(4,'STU004','ณัฐพล สุขใจ','123456',8,2,6,'natpol@example.com',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'1'),(5,'STU005','กมลรัตน์ แสงทอง','123456',5,2,4,'kamonrat@example.com','90','1','ซอยทองหล่อ','ถนนสุขุมวิท','คลองตันเหนือ','วัฒนา','กรุงเทพฯ','10110','0'),(7,'STU011','ทดสอบ ระบบ','123456',11,3,1,'test.sys@rmutto.ac.th','1','2','3','4','5','6','7','8','1'),(8,'STU012','อิค คิว_1','123456',7,1,1,'eiq@rmutto.ac.th','1','2','3','4','5','6','7','8','1'),(9,'026740461006-0','สิรายุส กาญจนโอฬารศิริ','123456',11,1,1,'sirayus.jok@gmail.com',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'1');
 /*!40000 ALTER TABLE `students` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -439,7 +446,6 @@ CREATE TABLE `submission_action_logs` (
 
 LOCK TABLES `submission_action_logs` WRITE;
 /*!40000 ALTER TABLE `submission_action_logs` DISABLE KEYS */;
-INSERT INTO `submission_action_logs` VALUES (10,11,1,'NEED_REVISION','2026-02-19 07:15:17','กรุณากลับไปแก้ไข'),(11,11,1,'NEED_REVISION','2026-02-19 11:30:08','ทดลองระบบแก้ไช'),(12,21,1,'APPROVED','2026-02-19 11:36:36',NULL),(13,21,1,'REJECTED','2026-02-19 11:36:50','แกล้งให้งงเล่นๆ'),(14,22,1,'APPROVED','2026-02-19 11:38:39',NULL),(15,22,1,'APPROVED','2026-02-19 11:38:43',NULL),(16,22,16,'NEED_REVISION','2026-02-19 11:39:58','ไม่บอก'),(17,22,16,'REJECTED','2026-02-19 11:41:08','ไม่บอกอย่าหลอกถาม');
 /*!40000 ALTER TABLE `submission_action_logs` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -462,7 +468,7 @@ CREATE TABLE `submissions` (
   KEY `submissions_ibfk_2_idx` (`form_id`),
   CONSTRAINT `submissions_ibfk_1` FOREIGN KEY (`student_id`) REFERENCES `students` (`id`),
   CONSTRAINT `submissions_ibfk_2` FOREIGN KEY (`form_id`) REFERENCES `form_workflows` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -471,7 +477,7 @@ CREATE TABLE `submissions` (
 
 LOCK TABLES `submissions` WRITE;
 /*!40000 ALTER TABLE `submissions` DISABLE KEYS */;
-INSERT INTO `submissions` VALUES (11,9,1,'2026-02-19 06:31:34','NEED_REVISION','{\"subject\": \"ทดสอบใบคำร้องทั่วไป 0.2\", \"request_reason\": \"ต้องการทดสอบใบคำร้องทั่วไปว่าทำงานได้หรือเปล่า\"}'),(20,9,2,'2026-02-19 07:05:53','IN_PROGRESS','{\"gpa\": \"3.45\", \"term\": \"2\", \"subject\": \"ขอลงทะเบียนเรียนเกินกว่าหน่วยกิตที่กำหนด\", \"student_type\": \"ปกติ\", \"academic_year\": \"2568\", \"year_of_study\": \"1\", \"request_reason\": \"108 เหตุผล\", \"reason_category\": \"ภาคการศึกษาสุดท้ายที่สำเร็จการศึกษาตามหลักสูตร\", \"other_reason_text\": \"\", \"past_overload_term\": \"\", \"past_overload_year\": \"\", \"accumulated_credits\": \"125\", \"past_overload_status\": \"ไม่เคยลงทะเบียนเกิน\", \"total_credits_requested\": \"18\"}'),(21,1,1,'2026-02-19 07:56:09','REJECTED','{\"subject\": \"456\", \"request_reason\": \"555\"}'),(22,1,1,'2026-02-19 11:38:18','REJECTED','{\"subject\": \"อย่าตลก\", \"request_reason\": \"ทสสอบเหมือนเดิม\"}');
+INSERT INTO `submissions` VALUES (29,1,7,'2026-02-24 22:10:20','PENDING','{\"year\": \"1\", \"phone\": \"0985340509\", \"reason\": \"ความลับราชการ\", \"courses\": [{\"id\": 1771945558323, \"code\": \"123456\", \"name\": \"วิชาอะไรสักอย่าง\", \"note\": \"อยากเป็นที่ 1 \", \"newSection\": \"1\", \"oldSection\": \"2\"}], \"semester\": \"1\", \"academicYear\": \"2569\"}');
 /*!40000 ALTER TABLE `submissions` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -484,4 +490,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-02-19 19:47:43
+-- Dump completed on 2026-02-25 13:27:43
