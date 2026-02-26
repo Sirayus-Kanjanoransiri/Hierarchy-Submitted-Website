@@ -5,9 +5,13 @@ function ApproverDashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState(null);
   const [comment, setComment] = useState("");
+<<<<<<< HEAD
   
   // State สำหรับเก็บการตั้งค่าระบบ (วันหมดเขต, ค่าหน่วยกิต, ค่าปรับ)
   const [sysSettings, setSysSettings] = useState(null);
+=======
+  const [daysLate, setDaysLate] = useState("");
+>>>>>>> fc68d90cc4ae30277185617427130629d0fafb60
 
   useEffect(() => {
     fetchTasks();
@@ -32,6 +36,8 @@ function ApproverDashboard() {
       const user = JSON.parse(localStorage.getItem('user'));
       if (!user?.id) throw new Error('No approver');
 
+      // หมายเหตุ: Backend ของคุณต้องใช้ SQL JOIN กับตาราง forms และ categories 
+      // เพื่อให้ได้ item.form_name และ item.category_name ออกมา
       const res = await fetch(`/approver/api/tasks?approver_id=${user.id}`);
       if (!res.ok) throw new Error('Fetch failed');
 
@@ -173,63 +179,60 @@ function ApproverDashboard() {
   const renderDetail = (item) => {
     const data = typeof item.form_data === 'string' ? JSON.parse(item.form_data) : item.form_data;
     
+    // ตรวจสอบประเภทฟอร์ม
     const isLateRegForm = data?.subject?.includes("ขอลงทะเบียนเรียนล่าช้า") || item.form_id === 3;
     const isCourseCancelForm = data?.subject?.includes("ขอยกเลิกการลงทะเบียนเรียน") || item.form_id === 4;
     const isConfirmRegForm = data?.subject?.includes("ขอยืนยันการลงทะเบียนเรียน") || item.form_id === 5;
     const isOverloadForm = data?.subject?.includes("เกินกว่าหน่วยกิต") || item.form_id === 2;
     const isUnderloadForm = data?.subject?.includes("ต่ำกว่าหน่วยกิต") || item.form_id === 6;
+    const isChangeSectionForm = item.form_id === 7; // แบบคำขอเปลี่ยนกลุ่มเรียน
 
     return (
       <div className="space-y-4 text-sm text-gray-800">
         <div className="bg-indigo-50 p-4 rounded border border-indigo-100 flex justify-between items-start shadow-sm">
           <div>
             <h3 className="font-bold text-indigo-900 text-base mb-2">ข้อมูลผู้ยื่นคำร้อง</h3>
-            <p><span className="font-semibold">ชื่อนักศึกษา:</span> {item.student_name} <span className="text-gray-500 text-xs">(ชั้นปี {data?.year_of_study || '-'} | ภาค{data?.student_type || 'ปกติ'})</span></p>
+            <p><span className="font-semibold">ชื่อนักศึกษา:</span> {item.student_name} <span className="text-gray-500 text-xs">(ชั้นปี {data?.year_of_study || data?.year || '-'})</span></p>
             <p><span className="font-semibold">สาขาวิชา:</span> {item.department_name}</p>
           </div>
           <div className="text-right">
-            <span className="bg-indigo-600 text-white text-xs px-3 py-1 rounded-full shadow">หมวดหมู่: {item.role_at_step}</span>
+            <span className="bg-indigo-600 text-white text-xs px-3 py-1 rounded-full shadow">บทบาทผู้อนุมัติ: {item.role_at_step}</span>
           </div>
         </div>
 
-        {/* --- ตารางวิชาสำหรับฟอร์ม (3, 4, 5) --- */}
+        {/* --- UI สำหรับฟอร์มที่มีตารางรายวิชา (3, 4, 5) --- */}
         {(isLateRegForm || isCourseCancelForm || isConfirmRegForm) && (
           <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm mt-4">
             <div className="bg-gray-100 px-4 py-2 border-b font-bold text-gray-800 flex justify-between">
-              <span>รายละเอียดคำร้อง ({isLateRegForm ? 'ขอลงทะเบียนล่าช้า' : isCourseCancelForm ? 'ขอยกเลิกการลงทะเบียนเรียน' : 'ขอยืนยันการลงทะเบียนเรียน'})</span>
+              <span>{item.form_name}</span>
               <span className="text-indigo-600">เทอม {data.term}/{data.academic_year}</span>
             </div>
-            
             <div className="p-4 bg-white space-y-4">
               <div className="bg-gray-50 p-3 rounded border border-gray-100">
                  <p className="font-semibold text-gray-700 mb-1">เหตุผลความจำเป็น:</p>
                  <p className="text-gray-800 whitespace-pre-wrap">{data.request_reason || 'ไม่ได้ระบุเหตุผล'}</p>
               </div>
-
               <div>
-                <p className="font-bold text-gray-700 mb-2 text-sm">รายวิชาที่ต้องการ{isLateRegForm ? 'ลงทะเบียน' : isCourseCancelForm ? 'ยกเลิก' : 'ยืนยัน'}:</p>
-                <div className="overflow-x-auto border border-gray-200 rounded-lg">
-                  <table className="min-w-full divide-y divide-gray-200 text-sm text-center">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-3 py-2 font-semibold text-gray-600">รหัสวิชา</th>
-                        <th className="px-3 py-2 font-semibold text-gray-600 text-left">ชื่อวิชา</th>
-                        <th className="px-3 py-2 font-semibold text-gray-600">กลุ่ม</th>
-                        <th className="px-3 py-2 font-semibold text-gray-600">หน่วยกิต</th>
+                <table className="min-w-full divide-y divide-gray-200 text-sm text-center border">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-3 py-2">รหัสวิชา</th>
+                      <th className="px-3 py-2 text-left">ชื่อวิชา</th>
+                      <th className="px-3 py-2">กลุ่ม</th>
+                      <th className="px-3 py-2">หน่วยกิต</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-100">
+                    {data.courses_list?.map((course, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50">
+                        <td className="px-3 py-2">{course.courseCode}</td>
+                        <td className="px-3 py-2 text-left">{course.courseName}</td>
+                        <td className="px-3 py-2">{course.section}</td>
+                        <td className="px-3 py-2 font-bold">{course.credits}</td>
                       </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-100">
-                      {data.courses_list?.map((course, idx) => (
-                          <tr key={idx} className="hover:bg-gray-50">
-                            <td className="px-3 py-2 font-medium">{course.courseCode}</td>
-                            <td className="px-3 py-2 text-left">{course.courseName}</td>
-                            <td className="px-3 py-2">{course.section}</td>
-                            <td className="px-3 py-2 font-semibold text-indigo-600">{course.credits}</td>
-                          </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                    ))}
+                  </tbody>
+                </table>
               </div>
               
               {item.receipt_image_path && (
@@ -252,13 +255,53 @@ function ApproverDashboard() {
         )}
 
         {/* --- UI ฟอร์มลงเกิน/ต่ำกว่าเกณฑ์ (2, 6) --- */}
+        {/* --- UI สำหรับฟอร์มเปลี่ยนกลุ่มเรียน (ฟอร์ม 7) --- */}
+        {isChangeSectionForm && (
+          <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm mt-4">
+            <div className="bg-cyan-100 px-4 py-2 border-b font-bold text-cyan-900 border-cyan-200 flex justify-between">
+              <span>{item.form_name}</span>
+              <span>เทอม {data.semester}/{data.academicYear}</span>
+            </div>
+            <div className="p-4 bg-white space-y-4">
+              <div className="bg-gray-50 p-3 rounded border border-gray-100">
+                <p className="font-semibold text-gray-700 mb-1">เหตุผลความจำเป็น:</p>
+                <p className="text-gray-800 whitespace-pre-wrap">{data.reason || 'ไม่ได้ระบุเหตุผล'}</p>
+              </div>
+              <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                <table className="min-w-full divide-y divide-gray-200 text-sm text-center">
+                  <thead className="bg-cyan-50">
+                    <tr>
+                      <th className="px-3 py-2 text-cyan-800">รหัสวิชา</th>
+                      <th className="px-3 py-2 text-left text-cyan-800">ชื่อวิชา</th>
+                      <th className="px-3 py-2 text-red-600">กลุ่มเดิม</th>
+                      <th className="px-3 py-2 text-emerald-600">กลุ่มใหม่</th>
+                      <th className="px-3 py-2 text-cyan-800">หมายเหตุ</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-100">
+                    {data.courses?.map((course, idx) => (
+                      <tr key={idx} className="hover:bg-cyan-50/30">
+                        <td className="px-3 py-2 font-medium">{course.code}</td>
+                        <td className="px-3 py-2 text-left">{course.name}</td>
+                        <td className="px-3 py-2 font-bold text-red-500 bg-red-50/30">{course.oldSection}</td>
+                        <td className="px-3 py-2 font-bold text-emerald-600 bg-emerald-50/30">{course.newSection}</td>
+                        <td className="px-3 py-2 text-xs italic">{course.note || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* --- UI สำหรับฟอร์มพิจารณาหน่วยกิต (2 และ 6) --- */}
         {(isOverloadForm || isUnderloadForm) && (
           <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm mt-4">
             <div className="px-4 py-2 border-b font-bold flex justify-between bg-indigo-100 text-indigo-900 border-indigo-200">
-              <span>รายละเอียดคำร้อง ({isOverloadForm ? 'ขอลงทะเบียนเกินกว่าหน่วยกิต' : 'ขอลงทะเบียนต่ำกว่าหน่วยกิต'})</span>
-              <span className="font-bold">เทอม {data.term}/{data.academic_year}</span>
+              <span>{item.form_name}</span>
+              <span>เทอม {data.term}/{data.academic_year}</span>
             </div>
-            
             <div className="p-4 bg-white space-y-4">
               <div className="flex flex-wrap gap-4 mb-2">
                 <div className="bg-gray-50 p-3 rounded border border-gray-200 flex-1 min-w-[120px]">
@@ -330,7 +373,6 @@ function ApproverDashboard() {
             </div>
           </div>
         )}
-
       </div>
     );
   };
@@ -346,7 +388,7 @@ function ApproverDashboard() {
   const needsFinanceCheck = isFinance && isLateRegForm;
 
   return (
-    <div className="p-8 bg-gray-100 min-h-screen font-['Inter']">
+    <div className="p-8 bg-gray-100 min-h-screen">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold mb-8 text-gray-800 border-l-4 border-indigo-600 pl-4">เอกสารที่รอการอนุมัติ</h1>
 
@@ -376,7 +418,8 @@ function ApproverDashboard() {
                       <div className="text-xs text-gray-500">{item.department_name}</div>
                     </td>
                     <td className="p-4 text-sm font-medium text-indigo-600 flex flex-col items-start gap-1">
-                      {dataPreview?.subject || 'เอกสารคำร้องทั่วไป'}
+                      <div className="text-gray-900 font-bold">{item.form_name}</div>
+                      <div className="text-[11px] text-gray-500 font-normal">หมวดหมู่: {item.category_name}</div>
                       {statusTag && <span className={`text-[10px] px-2 py-0.5 rounded-full text-white ${item.receipt_image_path ? 'bg-emerald-500' : 'bg-orange-400'}`}>{statusTag}</span>}
                     </td>
                     <td className="p-4 text-center">
@@ -401,7 +444,6 @@ function ApproverDashboard() {
               <h2 className="font-bold text-xl">แฟ้มพิจารณาคำร้องนักศึกษา</h2>
               <button className="text-indigo-200 hover:text-white text-3xl leading-none" onClick={() => { setSelectedItem(null); setComment(''); }}>&times;</button>
             </div>
-
             <div className="p-6 overflow-y-auto flex-1 bg-gray-50">
                 {renderDetail(selectedItem)}
 
@@ -413,7 +455,6 @@ function ApproverDashboard() {
                   </div>
                 )}
             </div>
-
             <div className="bg-gray-100 px-6 py-4 border-t flex gap-3 justify-end items-center">
               {needsFinanceCheck ? (
                  /* ---------------- โหมดการเงิน (Role 8) ---------------- */

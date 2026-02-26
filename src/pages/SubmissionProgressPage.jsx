@@ -41,7 +41,7 @@ function SubmissionProgressPage() {
       const user = JSON.parse(localStorage.getItem('user'));
       if (!user?.id) throw new Error();
 
-      const res = await fetch(`/student/api/student/submissions?student_id=${user.id}`);
+      const res = await fetch(`/student/api/submissions?student_id=${user.id}`);
       if (!res.ok) throw new Error();
 
       const data = await res.json();
@@ -56,7 +56,7 @@ function SubmissionProgressPage() {
   const fetchSteps = async (submissionId) => {
     setLoadingSteps(true);
     try {
-      const res = await fetch(`/student/api/student/submission-steps?submission_id=${submissionId}`);
+      const res = await fetch(`/student/api/submission-steps?submission_id=${submissionId}`);
       if (!res.ok) throw new Error();
 
       const data = await res.json();
@@ -76,7 +76,7 @@ function SubmissionProgressPage() {
   const getFormPath = (formId) => {
     switch (formId) {
       case 1:
-        return '/forms/academic-request-6';
+        return '/forms/general-request-form';
       case 2:
         return '/forms/overload-registration-form';
       default:

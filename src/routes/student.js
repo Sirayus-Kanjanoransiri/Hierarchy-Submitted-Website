@@ -72,12 +72,13 @@ router.get('/user/:student_id', async (req, res) => {
 
   try {
     const query = `
-      SELECT 
+       SELECT 
         s.id,
         s.student_id,
         s.full_name,
         s.email,
         s.department_id,
+        s.program_of_study,
         s.advisor_id,
         s.status,
         s.address_no,
@@ -90,10 +91,12 @@ router.get('/user/:student_id', async (req, res) => {
         s.address_postcode,
         d.department_name,
         d.faculty_id,
-        f.faculty_name
+        f.faculty_name,
+        p.program_name
       FROM students s
       LEFT JOIN departments d ON s.department_id = d.id
       LEFT JOIN faculty f ON d.faculty_id = f.id
+      LEFT JOIN program_of_study p ON s.program_of_study = p.id
       WHERE s.student_id = ?
     `;
 
@@ -299,7 +302,7 @@ router.post('/api/payments/upload-slip', upload.single('receipt'), async (req, r
 // ============================
 
 // 1. ดึงรายการคำร้องทั้งหมดของนักศึกษาคนนี้
-router.get('/api/student/submissions', async (req, res) => {
+router.get('/api/submissions', async (req, res) => {
   const { student_id } = req.query;
   if (!student_id) return res.status(400).json({ error: 'Missing student_id' });
 
@@ -318,7 +321,7 @@ router.get('/api/student/submissions', async (req, res) => {
 });
 
 // 2. ดึงรายละเอียดลำดับการอนุมัติ (Workflow Steps) ของคำร้องนั้นๆ
-router.get('/api/student/submission-steps', async (req, res) => {
+router.get('/api/submission-steps', async (req, res) => {
   const { submission_id } = req.query;
   if (!submission_id) return res.status(400).json({ error: 'Missing submission_id' });
 
@@ -338,6 +341,95 @@ router.get('/api/student/submission-steps', async (req, res) => {
   } catch (error) {
     console.error('Error fetching steps:', error);
     res.status(500).json({ error: 'Failed to fetch steps' });
+  }
+});
+
+// ==========================================
+// 1. ดึงรายละเอียดคำร้องสำหรับการแก้ไข (Edit Submission) - ใช้สำหรับโหลดข้อมูลเก่ามาแสดงในฟอร์มตอนกดแก้ไข
+// ==========================================
+router.get('/api/submissions/detail', async (req, res) => {
+  const { id } = req.query; // รับ submission_id จาก Query String (?id=...)
+
+  if (!id) {
+    return res.status(400).json({ error: 'กรุณาระบุ ID ของคำร้อง (Missing submission id)' });
+  }
+
+  try {
+    // ดึงข้อมูลจากตาราง submissions
+    const [rows] = await pool.query(`
+      SELECT 
+        id, 
+        form_id, 
+        form_data, 
+        submission_status, 
+        submitted_at
+      FROM submissions
+      WHERE id = ?
+    `, [id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'ไม่พบข้อมูลคำร้องที่ระบุ' });
+    }
+
+    const submission = rows[0];
+
+    // ตรวจสอบว่า form_data เป็น String หรือไม่ ถ้าใช่ให้ Parse เป็น Object ก่อนส่งออกไป
+    // เพื่อให้ Frontend ใช้งานได้ทันทีโดยไม่ต้อง JSON.parse ซ้ำ
+    if (typeof submission.form_data === 'string') {
+      try {
+        submission.form_data = JSON.parse(submission.form_data);
+      } catch (e) {
+        console.error("Error parsing form_data:", e);
+        // ถ้า parse ไม่ได้ให้ส่งไปแบบเดิม
+      }
+    }
+
+    res.json(submission);
+  } catch (error) {
+    console.error('Database Error:', error);
+    res.status(500).json({ error: 'เกิดข้อผิดพลาดในการดึงข้อมูลจากฐานข้อมูล' });
+  }
+});
+
+// ==========================================
+// 2. อัปเดตคำร้องที่ถูกตีกลับ (Resubmit Edited Submission)
+// ==========================================
+router.put('/api/submissions/:id', async (req, res) => {
+  const { id } = req.params;
+  const { form_data } = req.body;
+
+  if (!form_data) {
+    return res.status(400).json({ error: 'ไม่พบข้อมูลที่จะอัปเดต' });
+  }
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+
+    // 1. อัปเดตข้อมูลฟอร์ม และเปลี่ยนสถานะกลับเป็น PENDING เพื่อเริ่มกระบวนการใหม่ (หรือตาม Logic ของคุณ)
+    await conn.query(`
+      UPDATE submissions 
+      SET form_data = ?, submission_status = 'PENDING' 
+      WHERE id = ?
+    `, [JSON.stringify(form_data), id]);
+
+    // 2. รีเซ็ตสถานะการอนุมัติ (Approval Steps) ให้กลับมารอใหม่ 
+    // เฉพาะขั้นตอนที่เคยโดนตีกลับ (NEED_REVISION) หรือทั้งหมด ขึ้นอยู่กับนโยบาย
+    await conn.query(`
+      UPDATE approval_steps 
+      SET status = 'PENDING', reject_reason = NULL 
+      WHERE submission_id = ?
+    `, [id]);
+
+    await conn.commit();
+    res.json({ message: 'แก้ไขคำร้องและส่งใหม่เรียบร้อยแล้ว' });
+  } catch (error) {
+    if (conn) await conn.rollback();
+    console.error('Update Error:', error);
+    res.status(500).json({ error: 'ไม่สามารถบันทึกการแก้ไขได้' });
+  } finally {
+    if (conn) conn.release();
   }
 });
 
