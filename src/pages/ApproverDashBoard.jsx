@@ -6,12 +6,25 @@ function ApproverDashboard() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [comment, setComment] = useState("");
   
-  // State สำหรับเก็บจำนวนวันที่ล่าช้า/ค่าธรรมเนียม (ตอนที่เจ้าหน้าที่ทะเบียนจะออกบิล - ใช้เฉพาะฟอร์ม 3)
-  const [daysLate, setDaysLate] = useState("");
+  // State สำหรับเก็บการตั้งค่าระบบ (วันหมดเขต, ค่าหน่วยกิต, ค่าปรับ)
+  const [sysSettings, setSysSettings] = useState(null);
 
   useEffect(() => {
     fetchTasks();
+    fetchSettings();
   }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const res = await fetch('/approver/api/settings'); // ดึงการตั้งค่า
+      if (res.ok) {
+        const data = await res.json();
+        setSysSettings(data);
+      }
+    } catch (err) {
+      console.error('Failed to load settings', err);
+    }
+  };
 
   const fetchTasks = async () => {
     setLoading(true);
@@ -32,6 +45,37 @@ function ApproverDashboard() {
     }
   };
 
+  // 🧮 ฟังก์ชันเวทมนตร์: คำนวณวันล่าช้า (หักวันเสาร์-อาทิตย์)
+  const calculateBusinessDaysLate = (deadlineStr, submitDateStr) => {
+    if (!deadlineStr || !submitDateStr) return 0;
+    
+    const deadline = new Date(deadlineStr);
+    const submitDate = new Date(submitDateStr);
+
+    // รีเซ็ตเวลาให้เป็นเที่ยงคืนตรง เพื่อเปรียบเทียบเฉพาะ "วันที่"
+    deadline.setHours(0, 0, 0, 0);
+    submitDate.setHours(0, 0, 0, 0);
+
+    // ถ้ายื่นก่อนหรือตรงกับวันหมดเขต = ไม่สาย
+    if (submitDate <= deadline) return 0;
+
+    let daysLate = 0;
+    let currentDate = new Date(deadline);
+
+    // วนลูปนับวันไปเรื่อยๆ จนกว่าจะถึงวันที่นักศึกษากดยื่นฟอร์ม
+    while (currentDate < submitDate) {
+      currentDate.setDate(currentDate.getDate() + 1);
+      const dayOfWeek = currentDate.getDay();
+      
+      // 0 = วันอาทิตย์, 6 = วันเสาร์ -> ถ้าไม่ใช่วันพวกนี้ ค่อยนับเพิ่ม 1 วัน!
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        daysLate++;
+      }
+    }
+    return daysLate;
+  };
+
+  // --- ฟังก์ชันกดปุ่ม Action ---
   const handleAction = async (stepId, action) => {
     const user = JSON.parse(localStorage.getItem('user'));
     
@@ -40,70 +84,86 @@ function ApproverDashboard() {
       return;
     }
 
-    if (!window.confirm(`ยืนยันการทำรายการ: ${action}?`)) return;
+    const data = typeof selectedItem.form_data === 'string' ? JSON.parse(selectedItem.form_data) : selectedItem.form_data;
+    const isLateRegForm = selectedItem.form_id === 3 || data?.subject?.includes("ขอลงทะเบียนเรียนล่าช้า");
+    const isHeadOfReg = selectedItem.role_at_step === 'หัวหน้างานทะเบียน';
 
-    try {
-      const res = await fetch(`/approver/api/approver/process-action`, {
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ step_id: stepId, approver_id: user.id, action: action, note: comment })
-      });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || 'Update failed');
+    // 🌟 ภารกิจของหัวหน้างานทะเบียน: อนุมัติ + คำนวณเงิน + ออกบิลอัตโนมัติ!
+    if (action === 'APPROVED' && isLateRegForm && isHeadOfReg) {
+        if (!sysSettings || !sysSettings.late_reg_deadline) {
+            alert('ไม่พบการตั้งค่าวันสิ้นสุดการลงทะเบียน กรุณาให้ Admin ตั้งค่าก่อนค่ะ!');
+            return;
+        }
 
-      alert('ดำเนินการเรียบร้อย');
-      setSelectedItem(null);
-      setComment('');
-      fetchTasks(); 
-    } catch (err) {
-      alert('บันทึกไม่สำเร็จ: ' + err.message);
+        // คำนวณจำนวนวันสาย (หัก ส.-อา.)
+        const lateDays = calculateBusinessDaysLate(sysSettings.late_reg_deadline, selectedItem.submitted_at);
+        const feePerDay = parseInt(sysSettings.late_fee_per_day || 50);
+        
+        // 🌟 แก้ไขตรงนี้: คำนวณค่าปรับ และจำกัดเพดานสูงสุดไว้ที่ 500 บาท
+        let totalLateFee = lateDays * feePerDay;
+        totalLateFee = Math.min(totalLateFee, 500); // ถ้าเกิน 500 ระบบจะบังคับให้เหลือ 500 ทันที!
+
+        // คำนวณค่าหน่วยกิต
+        const totalCredits = parseInt(data.total_credits_requested || 0);
+        const costPerCredit = parseInt(sysSettings.credit_cost || 300);
+        const totalCreditCost = totalCredits * costPerCredit;
+
+        const grandTotal = totalLateFee + totalCreditCost;
+
+        // อัปเดตข้อความแจ้งเตือนให้ชัดเจนขึ้น
+        const confirmMsg = `สรุปยอดเรียกเก็บ:\n- จำนวนวันสาย (หัก ส.-อา.): ${lateDays} วัน\n- ค่าปรับ (สูงสุดไม่เกิน 500 บาท): ฿${totalLateFee}\n- ค่าหน่วยกิต: ฿${totalCreditCost}\nรวมทั้งสิ้น: ฿${grandTotal}\n\nต้องการอนุมัติและออกบิลใช่หรือไม่?`;
+        
+        if (!window.confirm(confirmMsg)) return;
+
+        try {
+            await fetch('/approver/api/approver/auto-issue-bill', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    submission_id: selectedItem.submission_id, 
+                    student_id: selectedItem.student_id, 
+                    amount: grandTotal 
+                })
+            });
+            await processApproval(stepId, action, user.id);
+            return;
+        } catch (err) {
+            alert('เกิดข้อผิดพลาดในการสร้างบิลอัตโนมัติ: ' + err.message);
+            return;
+        }
     }
+
+    // อนุมัติปกติ
+    if (!window.confirm(`ยืนยันการทำรายการ: ${action}?`)) return;
+    await processApproval(stepId, action, user.id);
   };
 
-  const handleIssueBill = async (submissionId, studentId) => {
-    if (!daysLate || isNaN(daysLate) || daysLate <= 0) {
-      alert('กรุณากรอกจำนวนวัน/หน่วย เพื่อคำนวณค่าธรรมเนียมให้ถูกต้อง');
-      return;
-    }
-    if (!window.confirm(`ยืนยันการออกบิลค่าปรับ/ค่าธรรมเนียม ใช่หรือไม่?`)) return;
-
-    try {
-      const res = await fetch('/approver/api/approver/issue-bill', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ submission_id: submissionId, student_id: studentId, days_late: daysLate })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        alert(`ออกบิลเรียบร้อยแล้ว! ยอดเรียกเก็บรวม: ฿${data.amount}`);
-        setSelectedItem(null);
-        setDaysLate("");
-        fetchTasks();
-      } else {
-        alert(`เกิดข้อผิดพลาด: ${data.error}`);
-      }
-    } catch (err) {
-      alert('ไม่สามารถเชื่อมต่อระบบหลังบ้านได้');
-    }
+  const processApproval = async (stepId, action, approverId) => {
+    const res = await fetch(`/approver/api/approver/process-action`, {
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ step_id: stepId, approver_id: approverId, action: action, note: comment })
+    });
+    if (!res.ok) throw new Error('Update failed');
+    alert('ดำเนินการเรียบร้อย');
+    setSelectedItem(null);
+    setComment('');
+    fetchTasks(); 
   };
 
   const handleVerifyPayment = async (paymentId, stepId) => {
     const user = JSON.parse(localStorage.getItem('user'));
-    if (!window.confirm('คุณตรวจสอบสลิปว่าถูกต้อง และต้องการอนุมัติคำร้องนี้ให้เสร็จสิ้นใช่หรือไม่?')) return;
-
+    if (!window.confirm('คุณตรวจสอบสลิปว่าถูกต้อง และต้องการอนุมัติส่งต่อให้งานทะเบียนใช่หรือไม่?')) return;
     try {
       const res = await fetch('/approver/api/approver/verify-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ payment_id: paymentId, step_id: stepId, approver_id: user.id })
       });
-      const data = await res.json();
       if (res.ok) {
-        alert('สุดยอด! ตรวจสอบสลิปและปิดคำร้องเสร็จสมบูรณ์แล้ว!');
+        alert('ตรวจสอบสลิปเรียบร้อย! ระบบส่งเรื่องให้เจ้าหน้าที่ทะเบียนแล้วค่ะ!');
         setSelectedItem(null);
         fetchTasks();
-      } else {
-        alert(`เกิดข้อผิดพลาด: ${data.error}`);
       }
     } catch (err) {
       alert('ไม่สามารถเชื่อมต่อระบบหลังบ้านได้');
@@ -113,17 +173,14 @@ function ApproverDashboard() {
   const renderDetail = (item) => {
     const data = typeof item.form_data === 'string' ? JSON.parse(item.form_data) : item.form_data;
     
-    // แยกประเภทฟอร์มต่างๆ ออกจากกัน
     const isLateRegForm = data?.subject?.includes("ขอลงทะเบียนเรียนล่าช้า") || item.form_id === 3;
     const isCourseCancelForm = data?.subject?.includes("ขอยกเลิกการลงทะเบียนเรียน") || item.form_id === 4;
     const isConfirmRegForm = data?.subject?.includes("ขอยืนยันการลงทะเบียนเรียน") || item.form_id === 5;
-    
     const isOverloadForm = data?.subject?.includes("เกินกว่าหน่วยกิต") || item.form_id === 2;
     const isUnderloadForm = data?.subject?.includes("ต่ำกว่าหน่วยกิต") || item.form_id === 6;
 
     return (
       <div className="space-y-4 text-sm text-gray-800">
-        {/* ข้อมูลหัวกระดาษ (โชว์ทุกฟอร์ม) */}
         <div className="bg-indigo-50 p-4 rounded border border-indigo-100 flex justify-between items-start shadow-sm">
           <div>
             <h3 className="font-bold text-indigo-900 text-base mb-2">ข้อมูลผู้ยื่นคำร้อง</h3>
@@ -135,7 +192,7 @@ function ApproverDashboard() {
           </div>
         </div>
 
-        {/* --- UI สำหรับฟอร์มที่มีตารางรายวิชา (ฟอร์ม 3, 4, 5) --- */}
+        {/* --- ตารางวิชาสำหรับฟอร์ม (3, 4, 5) --- */}
         {(isLateRegForm || isCourseCancelForm || isConfirmRegForm) && (
           <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm mt-4">
             <div className="bg-gray-100 px-4 py-2 border-b font-bold text-gray-800 flex justify-between">
@@ -186,7 +243,7 @@ function ApproverDashboard() {
                       alt="Slip" 
                       className="max-h-80 mx-auto rounded-md shadow-md border border-gray-300"
                     />
-                    <p className="mt-3 text-emerald-800 font-bold">ยอดเงินที่ต้องตรงกับสลิป: ฿{parseFloat(item.amount_due).toLocaleString()}</p>
+                    <p className="mt-3 text-emerald-800 font-bold">ยอดเงินที่ต้องตรงกับสลิป: ฿{parseFloat(item.amount_due || 0).toLocaleString()}</p>
                   </div>
                 </div>
               )}
@@ -194,18 +251,15 @@ function ApproverDashboard() {
           </div>
         )}
 
-        {/* --- UI สำหรับฟอร์มพิจารณาเงื่อนไข (ฟอร์ม 2 และ 6) - ปรับให้เป็นมาตรฐานเดียวกัน (Indigo/Yellow) --- */}
+        {/* --- UI ฟอร์มลงเกิน/ต่ำกว่าเกณฑ์ (2, 6) --- */}
         {(isOverloadForm || isUnderloadForm) && (
           <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm mt-4">
-            {/* ใช้ธีม Indigo สีเดียวเป็นมาตรฐาน */}
             <div className="px-4 py-2 border-b font-bold flex justify-between bg-indigo-100 text-indigo-900 border-indigo-200">
               <span>รายละเอียดคำร้อง ({isOverloadForm ? 'ขอลงทะเบียนเกินกว่าหน่วยกิต' : 'ขอลงทะเบียนต่ำกว่าหน่วยกิต'})</span>
               <span className="font-bold">เทอม {data.term}/{data.academic_year}</span>
             </div>
             
             <div className="p-4 bg-white space-y-4">
-              
-              {/* สรุปตัวเลข */}
               <div className="flex flex-wrap gap-4 mb-2">
                 <div className="bg-gray-50 p-3 rounded border border-gray-200 flex-1 min-w-[120px]">
                   <p className="text-xs text-gray-500 font-bold mb-1">หน่วยกิตสะสม</p>
@@ -215,14 +269,12 @@ function ApproverDashboard() {
                   <p className="text-xs text-gray-500 font-bold mb-1">เกรดเฉลี่ย (GPA)</p>
                   <p className="text-xl font-black text-gray-800">{data.gpa}</p>
                 </div>
-                {/* ใช้ธีม Indigo เป็นมาตรฐาน */}
                 <div className="p-3 rounded border flex-1 min-w-[150px] bg-indigo-50 border-indigo-200">
                   <p className="text-xs font-bold mb-1 text-indigo-700">จำนวนหน่วยกิตที่ขอลง</p>
                   <p className="text-2xl font-black text-indigo-700">{data.total_credits_requested}</p>
                 </div>
               </div>
 
-              {/* เหตุผลและเงื่อนไข */}
               <div className="space-y-3">
                 <div className="bg-gray-50 p-3 rounded border border-gray-100">
                   <p className="font-semibold text-gray-700 mb-1">เหตุผลความจำเป็นเบื้องต้น:</p>
@@ -231,27 +283,22 @@ function ApproverDashboard() {
 
                 <div className="bg-gray-50 p-3 rounded border border-gray-100">
                   <p className="font-semibold text-gray-700 mb-1">เงื่อนไขประกอบการพิจารณาที่เลือก:</p>
-                  {/* ใช้ text-indigo-700 เป็นมาตรฐาน */}
                   <p className="font-bold text-indigo-700">
                     ✓ {data.reason_category} {data.other_reason_text ? `(${data.other_reason_text})` : ''}
                   </p>
                 </div>
               </div>
 
-              {/* ส่วนแสดงประวัติการลงทะเบียน - ใช้ธีมสีเหลือง (Yellow) เป็นมาตรฐานทั้งสองฟอร์ม */}
               <div className="bg-yellow-50 p-4 rounded border border-yellow-200 mt-4">
                 <p className="font-bold text-yellow-800 mb-2">
                     ประวัติการขอลงทะเบียน{isOverloadForm ? 'เกินเกณฑ์' : 'ต่ำกว่าเกณฑ์'}ในอดีต:
                 </p>
-                
                 {isOverloadForm ? (
-                    // ประวัติของฟอร์มเกินเกณฑ์ (แบบข้อความ)
                     <p className="text-gray-800 font-medium">
                         {data.past_overload_status} 
                         {data.past_overload_status === 'เคยลงทะเบียนเกิน' ? ` (เมื่อเทอม ${data.past_overload_term}/${data.past_overload_year})` : ''}
                     </p>
                 ) : (
-                    // ประวัติของฟอร์มต่ำกว่าเกณฑ์ (แบบตาราง)
                     data.history_records && data.history_records.length > 0 ? (
                         <div className="overflow-x-auto border border-yellow-200 rounded-lg">
                           <table className="min-w-full divide-y divide-yellow-200 text-sm text-center bg-white">
@@ -280,7 +327,6 @@ function ApproverDashboard() {
                     )
                 )}
               </div>
-
             </div>
           </div>
         )}
@@ -291,12 +337,13 @@ function ApproverDashboard() {
 
   if (loading) return <div className="flex h-screen items-center justify-center text-xl font-bold text-indigo-600">กำลังโหลดเอกสาร...</div>;
 
-  const isRegistrationOfficer = selectedItem?.role_at_step === 'เจ้าหน้าที่งานทะเบียน';
+  // เช็คโหมดและ Role สำหรับการแสดงผลปุ่ม
+  const isFinance = selectedItem?.role_at_step === 'การเงิน'; // Role 8
   const dataString = typeof selectedItem?.form_data === 'string' ? selectedItem?.form_data : "";
   const isLateRegForm = selectedItem?.form_id === 3 || dataString?.includes("ขอลงทะเบียนเรียนล่าช้า");
   
-  // โหมดออกบิล ใช้เฉพาะกับฟอร์มลงล่าช้า (ฟอร์ม 3) เท่านั้น
-  const needsBillingMode = isRegistrationOfficer && isLateRegForm;
+  // 🌟 โหมดตรวจสอบสลิป จะเปิดใช้งานเฉพาะเมื่อ "ฝ่ายการเงิน" เข้ามาดู "ฟอร์มลงล่าช้า" เท่านั้น!
+  const needsFinanceCheck = isFinance && isLateRegForm;
 
   return (
     <div className="p-8 bg-gray-100 min-h-screen font-['Inter']">
@@ -316,7 +363,9 @@ function ApproverDashboard() {
             <tbody className="divide-y divide-gray-100">
               {tasks.length ? tasks.map(item => {
                 const dataPreview = typeof item.form_data === 'string' ? JSON.parse(item.form_data) : item.form_data;
-                const statusTag = item.role_at_step === 'เจ้าหน้าที่งานทะเบียน' && item.payment_id 
+                
+                // ให้ Tag สถานะจ่ายเงิน โชว์เฉพาะตอนอยู่ที่การเงิน
+                const statusTag = item.role_at_step === 'การเงิน' && item.payment_id 
                                   ? (item.receipt_image_path ? "รอตรวจสลิป" : "รอนักศึกษาจ่าย") 
                                   : null;
                 return (
@@ -338,7 +387,7 @@ function ApproverDashboard() {
                   </tr>
                 );
               }) : (
-                <tr><td colSpan="4" className="p-16 text-center text-gray-500 font-medium"><div className="text-4xl mb-4">📄</div>ยังไม่มีคำร้องรออนุมัติ</td></tr>
+                <tr><td colSpan="4" className="p-16 text-center text-gray-500 font-medium"><div className="text-4xl mb-4">📄</div>ยังไม่มีคำร้องรออนุมัติค่ะ</td></tr>
               )}
             </tbody>
           </table>
@@ -350,13 +399,14 @@ function ApproverDashboard() {
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col max-h-[90vh]">
             <div className="bg-indigo-600 px-6 py-4 flex justify-between items-center text-white">
               <h2 className="font-bold text-xl">แฟ้มพิจารณาคำร้องนักศึกษา</h2>
-              <button className="text-indigo-200 hover:text-white text-3xl leading-none" onClick={() => { setSelectedItem(null); setComment(''); setDaysLate(''); }}>&times;</button>
+              <button className="text-indigo-200 hover:text-white text-3xl leading-none" onClick={() => { setSelectedItem(null); setComment(''); }}>&times;</button>
             </div>
 
             <div className="p-6 overflow-y-auto flex-1 bg-gray-50">
                 {renderDetail(selectedItem)}
 
-                {!needsBillingMode && (
+                {/* ซ่อนกล่องคอมเมนต์ตอนที่การเงินต้องตรวจสลิป */}
+                {!needsFinanceCheck && (
                   <div className="mt-6 bg-white p-4 rounded-lg border shadow-sm">
                     <label className="font-bold text-gray-800 text-sm">ข้อเสนอแนะ / หมายเหตุ (บังคับกรอกเมื่อปฏิเสธหรือให้แก้ไข)</label>
                     <textarea className="w-full border border-gray-300 rounded-md p-3 mt-2 focus:ring-2 focus:ring-indigo-500 outline-none text-sm" rows="3" placeholder="พิมพ์ความเห็นที่นี่..." value={comment} onChange={e => setComment(e.target.value)} />
@@ -365,27 +415,12 @@ function ApproverDashboard() {
             </div>
 
             <div className="bg-gray-100 px-6 py-4 border-t flex gap-3 justify-end items-center">
-              {needsBillingMode ? (
-                 !selectedItem.payment_id ? (
-                    <div className="flex items-center justify-end gap-3 w-full bg-white p-3 rounded-lg border border-indigo-200 shadow-sm">
-                      <label className="text-sm font-bold text-indigo-900">ตัวคูณค่าธรรมเนียม (วัน/ครั้ง):</label>
-                      <input 
-                        type="number" min="1" 
-                        value={daysLate} onChange={e => setDaysLate(e.target.value)} 
-                        className="w-20 p-2 border border-gray-300 rounded-md outline-none focus:border-indigo-500 text-center font-bold" 
-                        placeholder="ระบุ" 
-                      />
-                      <button 
-                        onClick={() => handleIssueBill(selectedItem.submission_id, selectedItem.student_id)} 
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-bold shadow transition active:scale-95 ml-2"
-                      >
-                        ออกบิลเรียกเก็บเงิน
-                      </button>
-                    </div>
-                 ) : !selectedItem.receipt_image_path ? (
+              {needsFinanceCheck ? (
+                 /* ---------------- โหมดการเงิน (Role 8) ---------------- */
+                 !selectedItem.receipt_image_path ? (
                     <div className="w-full text-right p-2">
                        <span className="bg-orange-100 text-orange-800 border border-orange-200 px-6 py-3 rounded-lg font-bold shadow-sm inline-flex items-center gap-2">
-                         <span className="text-xl animate-pulse">⏳</span> ระบบกำลังรอนักศึกษาชำระเงิน (ยอด ฿{parseFloat(selectedItem.amount_due).toLocaleString()})
+                         <span className="text-xl animate-pulse">⏳</span> ระบบกำลังรอนักศึกษาอัปโหลดสลิปชำระเงิน (ยอด ฿{parseFloat(selectedItem.amount_due || 0).toLocaleString()})
                        </span>
                     </div>
                  ) : (
@@ -394,11 +429,12 @@ function ApproverDashboard() {
                         onClick={() => handleVerifyPayment(selectedItem.payment_id, selectedItem.step_id)} 
                         className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-lg font-bold shadow-lg transition-all active:scale-95 flex items-center gap-2"
                       >
-                        ✅ ตรวจสอบสลิปถูกต้อง & อนุมัติคำร้อง
+                        ✅ ตรวจสอบสลิปถูกต้อง & ส่งต่อให้งานทะเบียน
                       </button>
                     </div>
                  )
               ) : (
+                 /* ---------------- โหมดปกติ (รวมถึงเจ้าหน้าที่ทะเบียนด่านสุดท้ายด้วย) ---------------- */
                  <>
                   <button className="bg-red-500 hover:bg-red-600 text-white px-6 py-2.5 rounded-lg font-bold shadow transition active:scale-95" onClick={() => handleAction(selectedItem.step_id, 'REJECTED')}>ไม่อนุมัติ (Reject)</button>
                   <button className="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-2.5 rounded-lg font-bold shadow transition active:scale-95" onClick={() => handleAction(selectedItem.step_id, 'NEED_REVISION')}>ส่งกลับแก้ไข</button>

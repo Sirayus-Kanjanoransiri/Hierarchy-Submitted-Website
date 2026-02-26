@@ -26,6 +26,7 @@ import StudentPaymentDashboard from './pages/StudentPaymentDashboard';
 import CourseCancellationForm from './pages/RequestForms/CourseCancellationForm';
 import ConfirmRegistrationForm from './pages/RequestForms/ConfirmRegistrationForm';
 import UnderloadRegistrationForm from './pages/RequestForms/UnderloadRegistrationForm';
+import SystemSettings from './pages/SystemSettings';
 
 function App() {
   const [user, setUser] = useState(() => {
@@ -65,7 +66,8 @@ function App() {
         <Route path="/manage-faculty" element={<FacultyManagement />} />
         <Route path="/manage-roles" element={<RoleManagement />} />
         <Route path="/manage-students" element={<StudentManagement />} />
-        <Route path="/student-info" element={<StudentSearch />} />.
+        <Route path="/student-info" element={<StudentSearch />} />
+        <Route path="/settings" element={<SystemSettings />} />
 
         {/* Route สำหรับอาจารย์ */}
         <Route path="/approver-dashboard" element={<ApproverDashboard />} />
