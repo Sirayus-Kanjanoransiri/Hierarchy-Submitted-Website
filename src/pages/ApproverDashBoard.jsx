@@ -5,13 +5,9 @@ function ApproverDashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState(null);
   const [comment, setComment] = useState("");
-<<<<<<< HEAD
   
   // State สำหรับเก็บการตั้งค่าระบบ (วันหมดเขต, ค่าหน่วยกิต, ค่าปรับ)
   const [sysSettings, setSysSettings] = useState(null);
-=======
-  const [daysLate, setDaysLate] = useState("");
->>>>>>> fc68d90cc4ae30277185617427130629d0fafb60
 
   useEffect(() => {
     fetchTasks();
