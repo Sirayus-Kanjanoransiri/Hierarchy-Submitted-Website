@@ -58,10 +58,12 @@ router.post('/login', async (req, res) => {
 
     // -------------------------------------------------------
     // 3. ตรวจสอบกลุ่ม APPROVER (อาจารย์/ผู้อนุมัติ)
-    // Column: username, password, is_active
     // -------------------------------------------------------
     const [approvers] = await pool.query(
-      "SELECT id, username, full_name, email, department_id FROM approvers WHERE username = ? AND password = ? AND is_active = 1",
+      `SELECT a.id, a.username, a.full_name, a.email, a.department_id, ar.role_id 
+       FROM approvers a
+       LEFT JOIN approver_roles ar ON a.id = ar.approver_id
+       WHERE a.username = ? AND a.password = ? AND a.is_active = 1`,
       [username, password]
     );
 
