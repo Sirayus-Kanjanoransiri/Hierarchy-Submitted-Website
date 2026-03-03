@@ -125,6 +125,18 @@ function Navbar({ user, onLogout }) {
               </>
             )}
 
+            {/* ตรวจสอบสิทธิ์: ถ้า role เป็น staff หรือ approver ถึงจะเรนเดอร์ปุ่มนี้ออกมาค่ะ */}
+            {(currentUser?.role === 'staff' || currentUser?.role === 'approver') && (
+              <li>
+                <Link 
+                  to="/daily-summary" 
+                  className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                >
+                  รายงานสรุปคำร้อง
+                </Link>
+              </li>
+            )}
+
             <li>
               <Link to="/contact" className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 px-3 py-2 rounded-md text-sm font-medium transition-colors">
                 ติดต่อ

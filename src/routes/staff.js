@@ -324,4 +324,37 @@ router.put('/api/staff/update-profile/:id', async (req, res) => {
   }
 });
 
+// ============================
+//   DAILY SUBMISSIONS SUMMARY
+// ============================
+router.get('/api/daily-summary', async (req, res) => {
+  const { date } = req.query; // รับค่าวันที่ในรูปแบบ YYYY-MM-DD
+  
+  if (!date) {
+    return res.status(400).json({ message: 'กรุณาระบุวันที่ด้วย' });
+  }
+
+  try {
+    const sql = `
+      SELECT 
+        s.id AS submission_id,
+        st.student_id,
+        st.full_name AS student_name,
+        f.name AS form_name,
+        s.submitted_at,
+        s.submission_status
+      FROM submissions s
+      LEFT JOIN students st ON s.student_id = st.id
+      LEFT JOIN forms f ON s.form_id = f.id
+      WHERE DATE(s.submitted_at) = ?
+      ORDER BY s.submitted_at DESC
+    `;
+    const [rows] = await pool.query(sql, [date]);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching daily summary:', error);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการดึงข้อมูลสรุปรายวัน' });
+  }
+});
+
 module.exports = router;

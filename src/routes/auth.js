@@ -32,14 +32,21 @@ router.post('/login', async (req, res) => {
     );
 
     if (students.length > 0) {
-      // เช็คเพิ่มเติม: ถ้านักศึกษายังไม่อนุมัติ (status = '0' หรือ '2') อาจจะกันไว้ก่อนได้ตาม Business Logic
-      // แต่ในที่นี้จะให้เข้าได้ก่อนตามปกติ
+      const student = students[0];
+      
+      // เช็คสถานะการอนุมัติก่อนให้เข้าสู่ระบบ
+      if (student.status === '0') {
+        return res.status(403).json({ message: "บัญชีของคุณอยู่ระหว่างรอการพิจารณาจากเจ้าหน้าที่ กรุณารอการอนุมัติ" });
+      } else if (student.status === '2') {
+        return res.status(403).json({ message: "ขออภัย บัญชีของคุณถูกปฏิเสธการอนุมัติ กรุณาติดต่อเจ้าหน้าที่" });
+      }
+
+      // ถ้า status เป็น '1' ถึงจะยอมให้ล็อคอินสำเร็จ
       return res.json({ 
         role: "student", 
-        user: students[0] 
+        user: student 
       });
     }
-
     // -------------------------------------------------------
     // 2. ตรวจสอบกลุ่ม STAFF (เจ้าหน้าที่/Admin)
     // Column: username, password_hash

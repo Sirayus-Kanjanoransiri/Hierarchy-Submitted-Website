@@ -5,26 +5,24 @@ import { Link, useNavigate } from 'react-router-dom';
 
 // Data for faculties and departments (Thai)
 const facultyDepartmentData = [
-  { display: "บริหารธุรกิจและเทคโนโลยีสารสนเทศ", value: "1", departments: [
-    { display: "การบัญชี", value: "1" },
-    { display: "การตลาด", value: "2" },
-    { display: "การจัดการ", value: "3" },
-    { display: "เศรษฐศาสตร์", value: "4" },
-    { display: "ระบบสารสนเทศ", value: "5" },
+  { display: "บริหารธุรกิจและเทคโนโลยีสารสนเทศ", value: "2", departments: [
+    { display: "เทคโนโลยีสื่อดิจิทัล - การจัดการธุรกิจดิจิทัล", value: "1" },
+    { display: "การจัดการ", value: "2" },
+    { display: "การจัดการโลจิสติกส์และซัพพลายเชน", value: "3" },
+    { display: "การตลาด", value: "4" },
+    { display: "การบัญชี", value: "5" },
     { display: "เทคโนโลยีสารสนเทศ", value: "6" },
-    { display: "วิทยาการคอมพิวเตอร์", value: "7" },
-    { display: "เทคโนโลยีการโฆษณาและประชาสัมพันธ์", value: "8" },
-    { display: "เทคโนโลยีโลจิสติกส์และการจัดการระบบขนส่ง", value: "9" },
-    { display: "เทคโนโลยีมัลติมีเดีย", value: "10" },
-    { display: "นวัตกรรมและธุรกิจดิจิทัล", value: "11" },
-    { display: "BUSIT INTER", value: "12" },
+    { display: "เทคโนโลยีสื่อดิจิทัล-ดิจิทัลมีเดียและแอนิเมชั่น", value: "7" },
+    { display: "เทคโนโลยีสื่อสารมวลชน", value: "8" },
+    { display: "บัญชีบัณฑิต", value: "9" },
+    { display: "ระบบสารสนเทศ", value: "10" },
+    { display: "วิทยาการคอมพิวเตอร์", value: "11" },
+    { display: "เศรษฐศาสตร์", value: "12" },
   ]},
-  { display: "ศิลปศาสตร์", value: "2", departments: [
-    { display: "ภาษาอังกฤษเพื่อการประกอบธุรกิจและการสื่อสารนานาชาติ", value: "13" },
-    { display: "ภาษาจีนเพื่ออุตสาหกรรมบริการ", value: "14" },
-    { display: "นวัตกรรมการท่องเที่ยวและการโรงแรม", value: "15" },
-    { display: "การจัดการธุรกิจและเทคโนโลยี กีฬาอีสปอร์ต", value: "16" },
-    { display: "การจัดการทุนมนุษย์และนวัตกรรมสังคม", value: "17" },
+  { display: "ศิลปศาสตร์", value: "1", departments: [
+    { display: "การท่องเที่ยว", value: "13" },
+    { display: "การโรงแรม", value: "14" },
+    { display: "ภาษาอังกฤษเพื่อการสื่อสารสากล", value: "15" },
   ]},
 ];
 

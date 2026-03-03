@@ -31,6 +31,7 @@ import RepeatCourseForm from './pages/RequestForms/RepeatCourseForm';
 import ElectiveChangeForm from './pages/RequestForms/ElectiveChangeForm';
 import EnrollAdjustmentForm from './pages/RequestForms/EnrollAdjustmentForm';
 import CourseWithdrawalWithWForm from './pages/RequestForms/CourseWithdrawalWithWForm'; 
+import DailySummaryPage from './pages/DailySummaryPage';
 
 
 function App() {
@@ -73,6 +74,7 @@ function App() {
         <Route path="/manage-students" element={<StudentManagement />} />
         <Route path="/student-info" element={<StudentSearch />} />
         <Route path="/settings" element={<SystemSettings />} />
+        <Route path="/daily-summary" element={<DailySummaryPage />} />
 
         {/* Route สำหรับอาจารย์ */}
         <Route path="/approver-dashboard" element={<ApproverDashboard />} />
