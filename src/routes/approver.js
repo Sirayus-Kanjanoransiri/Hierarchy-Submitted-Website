@@ -11,23 +11,24 @@ router.get('/api/tasks', async (req, res) => {
   try {
     const sql = `
             SELECT 
-                aps.id as step_id,
+            aps.id as step_id,
                 aps.step_order, 
                 s.id as submission_id,
                 s.student_id,
                 s.submitted_at,
                 s.form_id,
                 s.form_data,
-                /* ดึงข้อมูลชื่อจาก Database โดยตรง */
-                f.name as form_name,        -- ชื่อฟอร์มจากตาราง forms
-                c.name as category_name,    -- ชื่อประเภทจากตาราง categories
+                f.name as form_name,
+                c.name as category_name,
                 st.full_name as student_name,
                 d.department_name,
                 r.role_name as role_at_step,
                 p.id as payment_id,
                 p.amount_due,
                 p.payment_status,
-                p.receipt_image_path
+                p.receipt_image_path,
+                (SELECT COUNT(*) FROM approval_steps WHERE submission_id = s.id) as total_steps,
+                aps.step_order as current_step
             FROM approval_steps aps
             JOIN submissions s ON aps.submission_id = s.id
             JOIN students st ON s.student_id = st.id

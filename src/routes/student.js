@@ -121,11 +121,21 @@ router.post('/api/submissions', async (req, res) => {
   let conn;
 
   try {
-    // ต้องใช้ Transaction เพราะถ้าพังกลางคิว จะได้ยกเลิกทั้งหมดได้
     conn = await pool.getConnection();
     await conn.beginTransaction();
 
-    // 1. ดึงกฎการเดินเอกสาร (Workflow) จากตาราง form_workflows ให้ถูกต้อง
+    // 1. ดึงข้อมูลนักศึกษาพร้อม Department ID และ Advisor ID เพื่อใช้ตรวจสอบ
+    const [[student]] = await conn.query(`
+      SELECT id, department_id, advisor_id 
+      FROM students 
+      WHERE id = ?
+    `, [student_id]);
+
+    if (!student) {
+      throw new Error('ไม่พบข้อมูลนักศึกษาในระบบ');
+    }
+
+    // 2. ดึง Workflow ของฟอร์มนี้
     const [flows] = await conn.query(`
       SELECT step_order, role_id
       FROM form_workflows
@@ -137,35 +147,58 @@ router.post('/api/submissions', async (req, res) => {
       throw new Error('ไม่พบเส้นทางการอนุมัติ (Workflow) สำหรับฟอร์มชนิดนี้');
     }
 
-    // 2. ดึงข้อมูลว่าใครคืออาจารย์ที่ปรึกษาของนักศึกษาคนนี้
-    const [[student]] = await conn.query(`
-      SELECT advisor_id FROM students WHERE id = ?
-    `, [student_id]);
-
-    if (!student) {
-      throw new Error('ไม่พบข้อมูลนักศึกษาในระบบ');
-    }
-
-    // 3. บันทึกใบคำร้องลงในตารางหลัก submissions
+    // 3. บันทึกใบคำร้องหลัก
     const [subResult] = await conn.query(`
       INSERT INTO submissions (student_id, form_id, form_data, submission_status) 
       VALUES (?, ?, ?, 'PENDING')
     `, [student_id, form_id, JSON.stringify(form_data)]);
 
-    const submissionId = subResult.insertId; // เก็บ ID ที่เพิ่งสร้างใหม่ไว้ใช้ต่อ
+    const submissionId = subResult.insertId;
 
-    // 4. วนลูปสร้างด่านอนุมัติลงใน approval_steps ทันที
+    // 4. วนลูปสร้างด่านอนุมัติ (Approval Steps)
     for (const flow of flows) {
       let assignedApproverId = null;
 
+      // --- กรณีที่ 1: อ.ที่ปรึกษา (Role ID: 1) ---
       if (flow.role_id === 1) {
-        // ด่านที่ 1 (อ.ที่ปรึกษา) - บังคับส่งให้ที่ปรึกษาตัวเอง
         if (!student.advisor_id) {
-          throw new Error('นักศึกษาคนนี้ยังไม่ได้ระบุอาจารย์ที่ปรึกษา');
+          throw new Error('นักศึกษาคนนี้ยังไม่ได้ระบุอาจารย์ที่ปรึกษาในระบบ');
+        }
+        
+        // ตรวจสอบว่า อ.ที่ปรึกษาคนนี้ สังกัด Department เดียวกับนักศึกษาหรือไม่
+        const [[advisorCheck]] = await conn.query(`
+          SELECT id FROM approvers 
+          WHERE id = ? AND department_id = ? AND is_active = 1
+        `, [student.advisor_id, student.department_id]);
+
+        if (!advisorCheck) {
+          throw new Error('อาจารย์ที่ปรึกษาไม่ได้อยู่ในภาควิชาเดียวกับนักศึกษา หรือสถานะไม่พร้อมใช้งาน');
         }
         assignedApproverId = student.advisor_id;
-      } else {
-        // ด่านอื่นๆ ค้นหาอาจารย์/เจ้าหน้าที่ ที่ถือ Role นั้นๆ อยู่
+
+      } 
+      // --- กรณีที่ 2: หัวหน้าสาขา (Role ID: 2) ---
+      else if (flow.role_id === 2) {
+        const [deptHeads] = await conn.query(`
+          SELECT a.id 
+          FROM approvers a
+          JOIN approver_roles ar ON a.id = ar.approver_id
+          WHERE ar.role_id = 2 
+            AND a.department_id = ? 
+            AND a.is_active = 1
+          LIMIT 1
+        `, [student.department_id]);
+
+        if (deptHeads.length === 0) {
+          throw new Error(`ไม่พบหัวหน้าสาขาที่สังกัดสาขา ID: ${student.department_id}`);
+        }
+        assignedApproverId = deptHeads[0].id;
+
+      } 
+      // --- กรณีที่ 3: บทบาทอื่นๆ (คณบดี, ทะเบียน, ฯลฯ) ---
+      else {
+        // สำหรับบทบาทส่วนกลาง หรือบทบาทที่ไม่แยกตามภาควิชา (เช่น คณบดี Role 3, 4)
+        // หมายเหตุ: หาก "รองคณบดี" แยกตามคณะ ให้เพิ่มเงื่อนไขตรวจสอบ faculty_id เพิ่มเติมได้
         const [approvers] = await conn.query(`
           SELECT a.id 
           FROM approvers a
@@ -175,12 +208,12 @@ router.post('/api/submissions', async (req, res) => {
         `, [flow.role_id]);
 
         if (approvers.length === 0) {
-          throw new Error(`ระบบไม่พบผู้อนุมัติที่รับผิดชอบตำแหน่ง Role ID: ${flow.role_id}`);
+          throw new Error(`ไม่พบผู้อนุมัติที่มีบทบาท (Role ID: ${flow.role_id}) ในระบบ`);
         }
         assignedApproverId = approvers[0].id;
       }
 
-      // บันทึกลำดับขั้นนั้นลง Database
+      // บันทึกขั้นตอนการอนุมัติ
       await conn.query(`
         INSERT INTO approval_steps (submission_id, step_order, role_id, assigned_approver_id, status)
         VALUES (?, ?, ?, ?, 'PENDING')
@@ -188,15 +221,16 @@ router.post('/api/submissions', async (req, res) => {
     }
 
     await conn.commit();
-    res.json({ message: 'ส่งคำร้องและแจกจ่ายเอกสารให้ผู้อนุมัติเรียบร้อยแล้ว' });
+    res.json({ 
+      message: 'ส่งคำร้องสำเร็จ', 
+      submission_id: submissionId 
+    });
 
   } catch (error) {
-    // ถ้าพังกลางทาง ให้ย้อนกลับ (Rollback) ข้อมูลทั้งหมด จะได้ไม่เกิดขยะใน Database
     if (conn) await conn.rollback();
     console.error('Submission Error:', error);
     res.status(500).json({ error: error.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล' });
   } finally {
-    // อย่าลืมคืน connection ให้ระบบ
     if (conn) conn.release();
   }
 });
@@ -302,16 +336,25 @@ router.post('/api/payments/upload-slip', upload.single('receipt'), async (req, r
 // ============================
 
 // 1. ดึงรายการคำร้องทั้งหมดของนักศึกษาคนนี้
-router.get('/api/submissions', async (req, res) => {
+router.get('/api/submissions-progress', async (req, res) => {
   const { student_id } = req.query;
   if (!student_id) return res.status(400).json({ error: 'Missing student_id' });
 
   try {
     const [rows] = await pool.query(`
-      SELECT id, form_id, form_data, submission_status, submitted_at
-      FROM submissions
-      WHERE student_id = ?
-      ORDER BY submitted_at DESC
+      SELECT 
+          s.id, 
+          s.form_id, 
+          s.form_data, 
+          s.submission_status, 
+          s.submitted_at,
+          f.name AS form_name,           
+          c.name AS category_name        
+        FROM submissions s
+        JOIN forms f ON s.form_id = f.id
+        JOIN categories c ON f.category_id = c.id
+        WHERE s.student_id = ?
+        ORDER BY s.submitted_at DESC
     `, [student_id]);
     res.json(rows);
   } catch (error) {
