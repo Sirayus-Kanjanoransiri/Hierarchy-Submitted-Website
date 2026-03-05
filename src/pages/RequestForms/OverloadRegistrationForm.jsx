@@ -57,7 +57,7 @@ const OverloadRegistrationForm = () => {
 
   const fetchExistingSubmission = async (id) => {
     try {
-      const res = await fetch(`/student/api/student/submission/${id}`);
+      const res = await fetch(`/student/api/submissions/detail?id=${id}`);
       if (!res.ok) throw new Error();
 
       const submission = await res.json();

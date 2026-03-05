@@ -1,7 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 const CourseWithdrawalWithWForm = () => {
   const [userData, setUserData] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [submissionId, setSubmissionId] = useState(null);
+  const [loadingSubmission, setLoadingSubmission] = useState(false);
+  
   const [formData, setFormData] = useState({
     studentType: 'ปกติ',
     yearLevel: '',
@@ -16,28 +21,63 @@ const CourseWithdrawalWithWForm = () => {
     ]
   });
 
-  // 1. ดึงข้อมูล User อัตโนมัติเมื่อเข้าหน้าฟอร์ม
+  const [searchParams] = useSearchParams();
+
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const localUserRaw = localStorage.getItem('user');
-        if (!localUserRaw) return;
-
-        const localUser = JSON.parse(localUserRaw);
-        const studentCode = localUser.student_id;
-        if (!studentCode) return;
-
-        const response = await fetch(`/student/user/${studentCode}`);
-        if (!response.ok) throw new Error('Failed to fetch user data');
-
-        const data = await response.json();
-        setUserData(data);
-      } catch (error) {
-        console.error('Error fetching user data:', error);
+    const idFromQuery = searchParams.get('submissionId');
+    
+    const initializeData = async () => {
+      const user = await fetchUserData();
+      
+      if (idFromQuery && user) {
+        setIsEditMode(true);
+        setSubmissionId(idFromQuery);
+        fetchExistingSubmission(idFromQuery);
       }
     };
-    fetchUserData();
-  }, []);
+
+    initializeData();
+  }, [searchParams]);
+
+  const fetchUserData = async () => {
+    try {
+      const localUserRaw = localStorage.getItem('user');
+      if (!localUserRaw) return null;
+
+      const localUser = JSON.parse(localUserRaw);
+      const studentCode = localUser.student_id;
+
+      const response = await fetch(`/student/user/${studentCode}`);
+      if (!response.ok) throw new Error('Failed to fetch user data');
+
+      const data = await response.json();
+      setUserData(data);
+      return data;
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      return null;
+    }
+  };
+
+  const fetchExistingSubmission = async (id) => {
+    setLoadingSubmission(true);
+    try {
+      const res = await fetch(`/student/api/submissions/detail?id=${id}`);
+      if (!res.ok) throw new Error('Submission not found');
+
+      const submission = await res.json();
+      const data = typeof submission.form_data === 'string'
+        ? JSON.parse(submission.form_data)
+        : submission.form_data;
+
+      setFormData(data);
+    } catch (error) {
+      alert('ไม่พบข้อมูลคำร้องเดิม');
+      setIsEditMode(false);
+    } finally {
+      setLoadingSubmission(false);
+    }
+  };
 
   // 2. ฟังก์ชันจัดการ Input
   const handleInputChange = (e) => {
@@ -86,20 +126,30 @@ const CourseWithdrawalWithWForm = () => {
     }
 
     try {
-      const response = await fetch('/student/api/submissions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          student_id: userData.id,
-          form_id: 10, // สมมติว่า ID ของฟอร์มถอนวิชาคือ 10
-          form_data: formData,
-        }),
-      });
+      let response;
+      
+      if (isEditMode && submissionId) {
+        response = await fetch(`/student/api/submissions/${submissionId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ form_data: formData }),
+        });
+      } else {
+        response = await fetch('/student/api/submissions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            student_id: userData.id,
+            form_id: 10,
+            form_data: formData,
+          }),
+        });
+      }
 
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Submission failed');
 
-      alert('ส่งคำร้องขอถอนวิชาเรียบร้อยแล้ว!');
+      alert(isEditMode ? 'แก้ไขคำร้องสำเร็จ!' : 'ส่งคำร้องสำเร็จแล้ว!');
     } catch (error) {
       console.error('Submission error:', error);
       alert(`เกิดข้อผิดพลาด: ${error.message}`);

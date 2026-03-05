@@ -79,6 +79,24 @@ function SubmissionProgressPage() {
         return '/forms/general-request-form';
       case 2:
         return '/forms/overload-registration-form';
+      case 3:
+        return '/forms/late-registration-form';
+      case 4:
+        return '/forms/course-cancellation-form';
+      case 5:
+        return '/forms/confirm-registration-form';
+      case 6:
+        return '/forms/underload-registration-form';
+      case 7:
+        return '/forms/course-section-change-form';
+      case 8:
+        return '/forms/repeat-course-form';
+      case 9:
+        return '/forms/elective-change-request-form';
+      case 10:
+        return '/forms/course-withdrawal-with-w-form';
+      case 11:
+        return '/forms/enroll-adjustment-form';
       default:
         return '/forms';
     }

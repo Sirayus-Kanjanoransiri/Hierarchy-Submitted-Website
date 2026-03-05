@@ -1,7 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 const CourseSectionChangeForm = () => {
   const [userData, setUserData] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [submissionId, setSubmissionId] = useState(null);
+  const [loadingSubmission, setLoadingSubmission] = useState(false);
+  
   const [formData, setFormData] = useState({
     year: '',
     phone: '',
@@ -13,28 +18,63 @@ const CourseSectionChangeForm = () => {
     ]
   });
 
-  // ดึงข้อมูล User เมื่อ Component Mount
+  const [searchParams] = useSearchParams();
+
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const localUserRaw = localStorage.getItem('user');
-        if (!localUserRaw) return;
-
-        const localUser = JSON.parse(localUserRaw);
-        const studentCode = localUser.student_id;
-        if (!studentCode) return;
-
-        const response = await fetch(`/student/user/${studentCode}`);
-        if (!response.ok) throw new Error('Failed to fetch user data');
-
-        const data = await response.json();
-        setUserData(data);
-      } catch (error) {
-        console.error('Error fetching user data:', error);
+    const idFromQuery = searchParams.get('submissionId');
+    
+    const initializeData = async () => {
+      const user = await fetchUserData();
+      
+      if (idFromQuery && user) {
+        setIsEditMode(true);
+        setSubmissionId(idFromQuery);
+        fetchExistingSubmission(idFromQuery);
       }
     };
-    fetchUserData();
-  }, []);
+
+    initializeData();
+  }, [searchParams]);
+
+  const fetchUserData = async () => {
+    try {
+      const localUserRaw = localStorage.getItem('user');
+      if (!localUserRaw) return null;
+
+      const localUser = JSON.parse(localUserRaw);
+      const studentCode = localUser.student_id;
+
+      const response = await fetch(`/student/user/${studentCode}`);
+      if (!response.ok) throw new Error('Failed to fetch user data');
+
+      const data = await response.json();
+      setUserData(data);
+      return data;
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      return null;
+    }
+  };
+
+  const fetchExistingSubmission = async (id) => {
+    setLoadingSubmission(true);
+    try {
+      const res = await fetch(`/student/api/submissions/detail?id=${id}`);
+      if (!res.ok) throw new Error('Submission not found');
+
+      const submission = await res.json();
+      const data = typeof submission.form_data === 'string'
+        ? JSON.parse(submission.form_data)
+        : submission.form_data;
+
+      setFormData(data);
+    } catch (error) {
+      alert('ไม่พบข้อมูลคำร้องเดิม');
+      setIsEditMode(false);
+    } finally {
+      setLoadingSubmission(false);
+    }
+  };
 
   // ฟังก์ชันจัดการการเปลี่ยนแปลง Input ทั่วไป
   const handleInputChange = (e) => {
@@ -76,22 +116,31 @@ const CourseSectionChangeForm = () => {
     }
 
     try {
-      const response = await fetch('/student/api/submissions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          student_id: userData.id, // ใช้ ID จาก database (PK) ไม่ใช่ รหัสนักศึกษา (SK)
-          form_id: 7, 
-          form_data: formData, // ส่งก้อน formData ทั้งหมดเข้าคอลัมน์ JSON
-        }),
-      });
+      let response;
+      
+      if (isEditMode && submissionId) {
+        response = await fetch(`/student/api/submissions/${submissionId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ form_data: formData }),
+        });
+      } else {
+        response = await fetch('/student/api/submissions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            student_id: userData.id,
+            form_id: 7, 
+            form_data: formData,
+          }),
+        });
+      }
 
       const result = await response.json();
 
       if (!response.ok) throw new Error(result.error || 'Failed to submit form');
 
-      alert('ส่งคำร้องเรียบร้อยแล้ว!');
-      // อาจจะเปลี่ยนหน้าหรือ reset form ที่นี่
+      alert(isEditMode ? 'แก้ไขคำร้องสำเร็จ!' : 'ส่งคำร้องเรียบร้อยแล้ว!');
     } catch (error) {
       console.error('Error submitting form:', error);
       alert(`เกิดข้อผิดพลาด: ${error.message}`);

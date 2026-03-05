@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 const ConfirmRegistrationForm = () => {
   const [userData, setUserData] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [submissionId, setSubmissionId] = useState(null);
+  const [loadingSubmission, setLoadingSubmission] = useState(false);
   
   const [studentType, setStudentType] = useState('ปกติ'); 
   const [yearOfStudy, setYearOfStudy] = useState('1'); 
@@ -18,36 +22,100 @@ const ConfirmRegistrationForm = () => {
     { id: 5, courseCode: '', courseName: '', section: '', credits: '' },
   ]);
 
+  const [searchParams] = useSearchParams();
   const std_department = userData?.department_name || '';
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const localUserRaw = localStorage.getItem('user');
-        if (!localUserRaw) return;
-
-        const localUser = JSON.parse(localUserRaw);
-        const studentCode = localUser.student_id;
-        if (!studentCode) return;
-
-        const response = await fetch(`/student/user/${studentCode}`);
-        if (!response.ok) throw new Error('Failed to fetch user data');
-
-        const data = await response.json();
-        setUserData(data);
-      } catch (error) {
-        console.error('Error fetching user data:', error);
+    const idFromQuery = searchParams.get('submissionId');
+    
+    const initializeData = async () => {
+      const user = await fetchUserData();
+      
+      if (idFromQuery && user) {
+        setIsEditMode(true);
+        setSubmissionId(idFromQuery);
+        fetchExistingSubmission(idFromQuery);
       }
     };
 
-    fetchUserData();
-  }, []);
+    initializeData();
+  }, [searchParams]);
+
+  const fetchUserData = async () => {
+    try {
+      const localUserRaw = localStorage.getItem('user');
+      if (!localUserRaw) return null;
+
+      const localUser = JSON.parse(localUserRaw);
+      const studentCode = localUser.student_id;
+
+      const response = await fetch(`/student/user/${studentCode}`);
+      if (!response.ok) throw new Error('Failed to fetch user data');
+
+      const data = await response.json();
+      setUserData(data);
+      return data;
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      return null;
+    }
+  };
+
+  const fetchExistingSubmission = async (id) => {
+    setLoadingSubmission(true);
+    try {
+      const res = await fetch(`/student/api/submissions/detail?id=${id}`);
+      if (!res.ok) throw new Error('Submission not found');
+
+      const submission = await res.json();
+      const data = typeof submission.form_data === 'string'
+        ? JSON.parse(submission.form_data)
+        : submission.form_data;
+
+      setStudentType(data.student_type || 'ปกติ');
+      setYearOfStudy(data.year_of_study || '1');
+      setTerm(data.term || '1');
+      setAcademicYear(data.academic_year || '');
+      setRequestReason(data.request_reason || '');
+      setTotalCredits(data.total_credits_requested || '');
+      
+      if (data.courses_list && Array.isArray(data.courses_list)) {
+        const loadedCourses = data.courses_list.map((c, index) => ({
+          id: index + 1,
+          courseCode: c.courseCode || '',
+          courseName: c.courseName || '',
+          section: c.section || '',
+          credits: c.credits || ''
+        }));
+        
+        while (loadedCourses.length < 5) {
+          loadedCourses.push({ id: loadedCourses.length + 1, courseCode: '', courseName: '', section: '', credits: '' });
+        }
+        
+        setCourses(loadedCourses);
+      }
+    } catch (error) {
+      alert('ไม่พบข้อมูลคำร้องเดิม');
+      setIsEditMode(false);
+    } finally {
+      setLoadingSubmission(false);
+    }
+  };
 
   const handleCourseChange = (id, field, value) => {
     setCourses(courses.map(course => 
       course.id === id ? { ...course, [field]: value } : course
     ));
   };
+
+  // Auto-calculate total credits whenever courses change
+  useEffect(() => {
+    const total = courses.reduce((sum, course) => {
+      const credits = parseFloat(course.credits) || 0;
+      return sum + credits;
+    }, 0);
+    setTotalCredits(total.toString());
+  }, [courses]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -78,22 +146,34 @@ const ConfirmRegistrationForm = () => {
     };
 
     try {
-      const response = await fetch('/student/api/submissions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          student_id: userData.id,   
-          form_id: 5, // form_id = 5 สำหรับยืนยันการลงทะเบียน
-          form_data: formData
-        }),
-      });
+      let response;
+      
+      if (isEditMode && submissionId) {
+        response = await fetch(`/student/api/submissions/${submissionId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ form_data: formData }),
+        });
+      } else {
+        response = await fetch('/student/api/submissions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            student_id: userData.id,   
+            form_id: 5,
+            form_data: formData
+          }),
+        });
+      }
 
       if (response.ok) {
-        alert('ส่งคำร้องสำเร็จ! ระบบได้ส่งเอกสารเพื่อรอการพิจารณาแล้วค่ะ');
-        setAcademicYear('');
-        setRequestReason('');
-        setTotalCredits('');
-        setCourses(courses.map(c => ({ ...c, courseCode: '', courseName: '', section: '', credits: '' })));
+        alert(isEditMode ? 'แก้ไขคำร้องสำเร็จ!' : 'ส่งคำร้องสำเร็จ! ระบบได้ส่งเอกสารเพื่อรอการพิจารณาแล้วค่ะ');
+        if (!isEditMode) {
+          setAcademicYear('');
+          setRequestReason('');
+          setTotalCredits('');
+          setCourses(courses.map(c => ({ ...c, courseCode: '', courseName: '', section: '', credits: '' })));
+        }
       } else {
         const errorData = await response.json().catch(() => ({ error: 'Unknown Error' }));
         alert(`เกิดข้อผิดพลาด: ${errorData.error || errorData.message}`);
@@ -103,12 +183,14 @@ const ConfirmRegistrationForm = () => {
     }
   };
 
-  if (!userData) return <div className="p-8 text-center text-gray-500">กำลังโหลดข้อมูล...</div>;
+  if (!userData || loadingSubmission) return <div className="p-8 text-center text-gray-500">กำลังโหลดข้อมูล...</div>;
 
   return (
     <div className="max-w-5xl mx-auto p-8 bg-white shadow-xl rounded-md my-10 border-t-8 border-emerald-600">
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-gray-800">ใบคำร้องขอยืนยันการลงทะเบียนเรียน</h2>
+        <h2 className="text-2xl font-bold text-gray-800">
+          {isEditMode ? '[แก้ไข] ' : ''}ใบคำร้องขอยืนยันการลงทะเบียนเรียน
+        </h2>
       </div>
 
       <form className="space-y-6" onSubmit={handleSubmit}>
@@ -203,7 +285,7 @@ const ConfirmRegistrationForm = () => {
 
           <div className="flex justify-end items-center gap-4 bg-gray-50 p-4 rounded border border-gray-200">
             <label className="font-bold text-gray-700">รวมจำนวนหน่วยกิตทั้งหมด:</label>
-            <input type="number" value={totalCredits} onChange={(e) => setTotalCredits(e.target.value)} className="border-b-2 border-emerald-500 focus:outline-none w-24 text-center text-xl font-bold text-emerald-700 bg-transparent" placeholder="0" required />
+            <input type="number" value={totalCredits} disabled className="border-b-2 border-emerald-500 focus:outline-none w-24 text-center text-xl font-bold text-emerald-700 bg-gray-100 cursor-not-allowed" placeholder="0" />
           </div>
 
         </div>

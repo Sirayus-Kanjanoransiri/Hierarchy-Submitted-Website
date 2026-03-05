@@ -1,7 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 const ElectiveChangeForm = () => {
   const [userData, setUserData] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [submissionId, setSubmissionId] = useState(null);
+  const [loadingSubmission, setLoadingSubmission] = useState(false);
+  
   const [formData, setFormData] = useState({
     faculty: '',
     academicYear: '',
@@ -21,6 +26,8 @@ const ElectiveChangeForm = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+
+  const [searchParams] = useSearchParams();
 
   // รายการเกรดที่อนุญาตให้เลือก
   const gradeOptions = ['A', 'B+', 'B', 'C+', 'C', 'D+', 'D', 'F', 'W', 'U', 'S'];
@@ -50,26 +57,60 @@ const ElectiveChangeForm = () => {
   };
 
 useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const localUserRaw = localStorage.getItem('user');
-        if (!localUserRaw) return;
-
-        const localUser = JSON.parse(localUserRaw);
-        const studentCode = localUser.student_id;
-        if (!studentCode) return;
-
-        const response = await fetch(`/student/user/${studentCode}`);
-        if (!response.ok) throw new Error('Failed to fetch user data');
-
-        const data = await response.json();
-        setUserData(data);
-      } catch (error) {
-        console.error('Error fetching user data:', error);
+    const idFromQuery = searchParams.get('submissionId');
+    
+    const initializeData = async () => {
+      const user = await fetchUserData();
+      
+      if (idFromQuery && user) {
+        setIsEditMode(true);
+        setSubmissionId(idFromQuery);
+        fetchExistingSubmission(idFromQuery);
       }
     };
-    fetchUserData();
-  }, []);
+
+    initializeData();
+  }, [searchParams]);
+
+  const fetchUserData = async () => {
+    try {
+      const localUserRaw = localStorage.getItem('user');
+      if (!localUserRaw) return null;
+
+      const localUser = JSON.parse(localUserRaw);
+      const studentCode = localUser.student_id;
+
+      const response = await fetch(`/student/user/${studentCode}`);
+      if (!response.ok) throw new Error('Failed to fetch user data');
+
+      const data = await response.json();
+      setUserData(data);
+      return data;
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      return null;
+    }
+  };
+
+  const fetchExistingSubmission = async (id) => {
+    setLoadingSubmission(true);
+    try {
+      const res = await fetch(`/student/api/submissions/detail?id=${id}`);
+      if (!res.ok) throw new Error('Submission not found');
+
+      const submission = await res.json();
+      const data = typeof submission.form_data === 'string'
+        ? JSON.parse(submission.form_data)
+        : submission.form_data;
+
+      setFormData(data);
+    } catch (error) {
+      alert('ไม่พบข้อมูลคำร้องเดิม');
+      setIsEditMode(false);
+    } finally {
+      setLoadingSubmission(false);
+    }
+  };
 
   const removeChangeRow = () => {
     if (formData.changes.length > 1) {
@@ -87,17 +128,25 @@ useEffect(() => {
     setSuccess(false);
 
     try {
-      const response = await fetch('/student/api/submissions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          student_id: userData?.id,
-          form_id: 9,
-          form_data: formData
-        })
-      });
+      let response;
+      
+      if (isEditMode && submissionId) {
+        response = await fetch(`/student/api/submissions/${submissionId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ form_data: formData }),
+        });
+      } else {
+        response = await fetch('/student/api/submissions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            student_id: userData?.id,
+            form_id: 9,
+            form_data: formData
+          })
+        });
+      }
 
       const data = await response.json();
 
@@ -106,26 +155,27 @@ useEffect(() => {
       }
 
       setSuccess(true);
-      alert('ส่งคำร้องสำเร็จแล้ว!');
+      alert(isEditMode ? 'แก้ไขคำร้องสำเร็จ!' : 'ส่งคำร้องสำเร็จแล้ว!');
       console.log('Submission successful:', data);
       
-      // รีเซ็ตฟอร์ม
-      setFormData({
-        faculty: '',
-        academicYear: '',
-        semester: '',
-        major: '',
-        minor: '',
-        curriculumYear: '',
-        gpa: '',
-        changes: [
-          { 
-            id: 1, 
-            oldCode: '', oldName: '', oldCredits: '', oldSemester: '', oldYear: '', oldGrade: '',
-            newCode: '', newName: '', newCredits: '', newSemester: '', newYear: ''
-          }
-        ]
-      });
+      if (!isEditMode) {
+        setFormData({
+          faculty: '',
+          academicYear: '',
+          semester: '',
+          major: '',
+          minor: '',
+          curriculumYear: '',
+          gpa: '',
+          changes: [
+            { 
+              id: 1, 
+              oldCode: '', oldName: '', oldCredits: '', oldSemester: '', oldYear: '', oldGrade: '',
+              newCode: '', newName: '', newCredits: '', newSemester: '', newYear: ''
+            }
+          ]
+        });
+      }
     } catch (err) {
       setError(err.message);
       console.error('Submission Error:', err);
