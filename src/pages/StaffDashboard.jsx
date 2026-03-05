@@ -89,7 +89,7 @@ function StaffDashboard() {
               </Link>
             </div>
 
-            {/* Card 3: สถิติรายงาน (คงเดิม) */}
+            {/* Card 3: สถิติรายงาน (อัปเดตแล้ว!) */}
             <div className="bg-white rounded-xl shadow-md p-8 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border-t-4 border-green-500">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-3 bg-green-100 rounded-full">
@@ -114,11 +114,14 @@ function StaffDashboard() {
                 รายงานสรุป
               </h3>
               <p className="text-gray-600 mb-6">
-                ดูสถิติการยื่นคำร้องรายเดือนและสถานะการดำเนินการ
+                ดูรายงานสรุปคำร้องประจำวันและสถานะการดำเนินการ
               </p>
-              <button className="block w-full text-center bg-gray-100 text-gray-400 font-medium py-2 px-4 rounded-lg cursor-not-allowed">
-                เร็วๆ นี้
-              </button>
+              <Link
+                to="/daily-summary"
+                className="block w-full text-center bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+              >
+                ดูรายงานสรุป
+              </Link>
             </div>
 
             {/* *** CARD 4: จัดการข้อมูล Staff *** */}
